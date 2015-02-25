@@ -425,7 +425,7 @@ void drawBaling(Frame *frm , Coord loc,int x1,int x2,int x3,int x4,int y1,int y2
 
 	int balingHeight = 80;
 }
-				
+
 void rotateBaling(Frame *frm,Coord loc, RGB col ,int counter ){
 	int x1=loc.x+40; int y1=loc.y+5;
 	int x2=loc.x+40; int y2=loc.y-5;
@@ -448,13 +448,25 @@ void rotateBaling(Frame *frm,Coord loc, RGB col ,int counter ){
 	drawBaling(frm,loc,x1,x2,x3,x4,y1,y2,y3,y4,col);
 }
 
-Coord lengthEndPoint(Coord startingPoint, int degree, int length){
+Coord lengthEndPoint(Coord startingPoint, int angle, int length){
 	Coord endPoint;
 	
-	endPoint.x = int((double)length * cos((double)degree * PI / (double)180)) + startingPoint.x;
-	endPoint.y = int((double)length * sin((double)degree * PI / (double)180)) + startingPoint.y;
+	endPoint.x = int((double)length * cos((double)angle * PI / (double)180)) + startingPoint.x;
+	endPoint.y = int((double)length * sin((double)angle * PI / (double)180)) + startingPoint.y;
 	
 	return endPoint;
+}
+
+void viewPort(Frame *frame, Coord origin, int size){
+	// viewport frame
+	plotLine(frame, origin.x, origin.y, origin.x + size, origin.y, rgb(255,255,255));
+	plotLine(frame, origin.x, origin.y, origin.x, origin.y + size, rgb(255,255,255));
+	plotLine(frame, origin.x, origin.y + size, origin.x + size, origin.y + size, rgb(255,255,255));
+	plotLine(frame, origin.x + size, origin.y, origin.x + size, origin.y + size, rgb(255,255,255));
+}
+
+void window(Frame *frame, Coord origin, int size){
+	
 }
 
 /* MAIN FUNCTION ------------------------------------------------------- */
@@ -511,12 +523,16 @@ int main() {
 	int canvasHeight = 700;
 	Coord canvasPosition = coord(screenX/2,screenY/2);
 	
-	/* Main Loop ------------------------------------------------------- */
+	// viewport properties
+	int viewportSize = 300;
+	Coord viewportOrigin = coord(999, 399);
 	
 	while (loop) {
 		
 		// clean composition frame
 		flushFrame(&cFrame, rgb(33,33,33));
+		
+		viewPort(&canvas, viewportOrigin, viewportSize);
 				
 		showCanvas(&cFrame, &canvas, canvasWidth, canvasHeight, canvasPosition, rgb(99,99,99), 1);
 		
