@@ -448,6 +448,15 @@ void rotateBaling(Frame *frm,Coord loc, RGB col ,int counter ){
 	drawBaling(frm,loc,x1,x2,x3,x4,y1,y2,y3,y4,col);
 }
 
+void drawKapal(Frame *frm, Coord loc, RGB color){
+	plotLine(frm,loc.x-15,loc.y-10,loc.x+15,loc.y-10,color);
+	plotLine(frm,loc.x-15,loc.y+10,loc.x+15,loc.y+10,color);
+	plotLine(frm,loc.x-15,loc.y-10,loc.x-20,loc.y,color);
+	plotLine(frm,loc.x+15,loc.y-10,loc.x+20,loc.y,color); 	
+	plotLine(frm,loc.x-15,loc.y+10,loc.x-20,loc.y,color);
+	plotLine(frm,loc.x+15,loc.y+10,loc.x+20,loc.y,color);
+	}
+
 Coord lengthEndPoint(Coord startingPoint, int angle, int length){
 	Coord endPoint;
 	
@@ -527,6 +536,15 @@ int main() {
 	int viewportSize = 300;
 	Coord viewportOrigin = coord(999, 399);
 	
+	//baling
+	int balingCounter=0;
+	int planeVelocity = 20;
+	int planeXPosition = canvasWidth;
+	int planeYPosition = 100;
+	int kapalXPosition = 250;
+	int kapalVelocity = 15;
+	int kapalYPosition = 250;
+
 	while (loop) {
 		
 		// clean composition frame
@@ -535,9 +553,13 @@ int main() {
 		viewPort(&canvas, viewportOrigin, viewportSize);
 				
 		showCanvas(&cFrame, &canvas, canvasWidth, canvasHeight, canvasPosition, rgb(99,99,99), 1);
-		
+								
 		// clean canvas
 		flushFrame(&canvas, rgb(0,0,0));
+
+		drawKapal(&canvas,coord(kapalXPosition -= -kapalVelocity,kapalYPosition),rgb(99,99,99));
+		
+		rotateBaling(&canvas,coord(planeXPosition -= planeVelocity,planeYPosition),rgb(255,255,255),balingCounter++);
 
 		//show frame
 		showFrame(&cFrame,&fb);	
