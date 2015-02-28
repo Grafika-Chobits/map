@@ -418,3 +418,57 @@ void drawPeta(Frame *frame, Coord center, RGB color) {
 	for(int i=0;i<papua.size();++i)
 		plotLine(frame, papua.at(i), color);
 }
+
+void rotateBaling(Frame *frm,Coord loc, RGB col ,int counter ){
+	int x1=loc.x+40; int y1=loc.y+5;
+	int x2=loc.x+40; int y2=loc.y-5;
+	int x3=loc.x-40; int y3=loc.y+5;
+	int x4=loc.x-40; int y4=loc.y-5;
+	
+	int temp;
+	temp=rotasiX(x1,y1,loc,counter*10);
+	y1=rotasiY(x1,y1,loc,counter*10);
+	x1=temp;
+	temp=rotasiX(x2,y2,loc,counter*10);
+	y2=rotasiY(x2,y2,loc,counter*10);
+	x2=temp;
+	temp=rotasiX(x3,y3,loc,counter*10);	
+	y3=rotasiY(x3,y3,loc,counter*10);
+	x3=temp;
+	temp=rotasiX(x4,y4,loc,counter*10);
+	y4=rotasiY(x4,y4,loc,counter*10);
+	x4=temp;
+	drawBaling(frm,loc,x1,x2,x3,x4,y1,y2,y3,y4,col);
+}
+
+void drawBaling(Frame *frm , Coord loc,int x1,int x2,int x3,int x4,int y1,int y2,int y3,int y4 ,RGB color){
+	int xOffset = loc.x-x1;
+	int yOffset = loc.y-y1;
+
+	plotCircle(frm,loc.x,loc.y,15,color);
+	std::vector<Coord> balingCoordinates;
+	balingCoordinates.push_back(loc);
+	balingCoordinates.push_back(coord(x1, y1));
+	balingCoordinates.push_back(coord(x2, y2));
+	balingCoordinates.push_back(coord(x3,y3));
+	balingCoordinates.push_back(coord(x4,y4));
+
+	// Gambar baling-baling
+	for(int i = 0; i < balingCoordinates.size(); i++){
+		int x0, y0, x1, y1;
+		if(i < balingCoordinates.size() - 1){
+			x0 = balingCoordinates.at(i).x;
+			y0 = balingCoordinates.at(i).y;
+			x1 = balingCoordinates.at(i + 1).x;
+			y1 = balingCoordinates.at(i + 1).y;
+		}else{
+			x0 = balingCoordinates.at(balingCoordinates.size() - 1).x;
+			y0 = balingCoordinates.at(balingCoordinates.size() - 1).y;
+			x1 = balingCoordinates.at(0).x;
+			y1 = balingCoordinates.at(0).y;
+		}
+		plotLine(frm, x0, y0, x1, y1, color);
+	}
+
+	int balingHeight = 80;
+}
