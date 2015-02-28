@@ -1,4 +1,5 @@
 #include<stdio.h>
+	#include<graphics.h>
 //http://2k8618.blogspot.com/2012/01/line-clipping-cohen-sutherland-line.html
 
 const int TOP=8,BOTTOM=4,RIGHT=2,LEFT=1;
@@ -80,20 +81,19 @@ void coh(int x1,int y1,int x2,int y2, int xmin,int ymin, int xmax, int ymax)
 
 	if(accept==true)
 	{
-		//line(x1,y1,x2,y2);
-		printf("Point 1 = (%d, %d)\n",x1, y1);
-		printf("Point 2 = (%d, %d)\n",x2, y2);
+		line(x1,y1,x2,y2);
+		//printf("Point 1 = (%d, %d)\n",x1, y1);
+		//printf("Point 2 = (%d, %d)\n",x2, y2);
 	}
 
 }
 
 int main()
 {
-	 //int gd=DETECT,gm,x,y,j,i;
-	 //initgraph(&gd,&gm,NULL);
+	 int gd=DETECT,gm,x,y,j,i;
+	 initgraph(&gd,&gm,NULL);
 	 
-	 //outtextxy(150,15, "Cohen Sutherland");
-
+	 outtextxy(150,15, "Cohen Sutherland");
 
 	 int xmx=200,ymx=200,xmn=100,ymn=100;
 	 
@@ -112,80 +112,80 @@ int main()
 	 int ax7=50,ay7=75,bx7=275,by7=275;
 	 int ax8=250,ay8=75,bx8=75,by8=275;
 
-	 //line(ax1,ay1,bx1,by1);
-	 //line(ax2,ay2,bx2,by2);
-	 //line(ax3,ay3,bx3,by3);
-	 //line(ax4,ay4,bx4,by4);
-	 //line(ax5,ay5,bx5,by5);
-	 //line(ax6,ay6,bx6,by6);
-	 //line(ax7,ay7,bx7,by7);
-	 //line(ax8,ay8,bx8,by8);
-	 //setcolor(4);
-	 //rectangle(xmn,ymn,xmx,ymx);
-	 //sleep(1000);
+	 line(ax1,ay1,bx1,by1);
+	 line(ax2,ay2,bx2,by2);
+	 line(ax3,ay3,bx3,by3);
+	 line(ax4,ay4,bx4,by4);
+	 line(ax5,ay5,bx5,by5);
+	 line(ax6,ay6,bx6,by6);
+	 line(ax7,ay7,bx7,by7);
+	 line(ax8,ay8,bx8,by8);
+	 setcolor(4);
+	 rectangle(xmn,ymn,xmx,ymx);
+	 delay(5000);
 	 
-	 //cleardevice(); 
+	 cleardevice(); 
 	 
-	 //setcolor(4);
-	 //rectangle(xmn,ymn,xmx,ymx);
+	 setcolor(4);
+	 rectangle(xmn,ymn,xmx,ymx);
 	 
-	 //setcolor(15);
-	 printf("xmin = %d\n", xmn);
-	 printf("ymin = %d\n", ymn);
-	 printf("xmax = %d\n", xmx);
-	 printf("ymax = %d\n", ymx);
+	 setcolor(15);
+	 //printf("xmin = %d\n", xmn);
+	 //printf("ymin = %d\n", ymn);
+	 //printf("xmax = %d\n", xmx);
+	 //printf("ymax = %d\n", ymx);
 	 
-	 printf("Sebelum\n");
-	 printf("Point 1 = (%d, %d)\n",ax1, ay1);
-	 printf("Point 2 = (%d, %d)\n",bx1, by1);
-	 printf("Sesudah\n");
+	 //~ printf("Sebelum\n");
+	 //~ printf("Point 1 = (%d, %d)\n",ax1, ay1);
+	 //~ printf("Point 2 = (%d, %d)\n",bx1, by1);
+	 //~ printf("Sesudah\n");
 	 coh(ax1,ay1,bx1,by1,xmn,ymn,xmx,ymx);
 	 
-	 printf("Sebelum\n");
-	 printf("Point 1 = (%d, %d)\n",ax2, ay2);
-	 printf("Point 2 = (%d, %d)\n",bx2, by2);
-	 printf("Sesudah\n");
+	 //~ printf("Sebelum\n");
+	 //~ printf("Point 1 = (%d, %d)\n",ax2, ay2);
+	 //~ printf("Point 2 = (%d, %d)\n",bx2, by2);
+	 //~ printf("Sesudah\n");
 	 coh(ax2,ay2,bx2,by2,xmn,ymn,xmx,ymx);
 	 
-	 printf("Sebelum\n");
-	 printf("Point 1 = (%d, %d)\n",ax3, ay3);
-	 printf("Point 2 = (%d, %d)\n",bx3, by3);
-	 printf("Sesudah\n");
+	 //~ printf("Sebelum\n");
+	 //~ printf("Point 1 = (%d, %d)\n",ax3, ay3);
+	 //~ printf("Point 2 = (%d, %d)\n",bx3, by3);
+	 //~ printf("Sesudah\n");
 	 coh(ax3,ay3,bx3,by3,xmn,ymn,xmx,ymx);
 	 
-	 printf("Sebelum\n");
-	 printf("Point 1 = (%d, %d)\n",ax4, ay4);
-	 printf("Point 2 = (%d, %d)\n",bx4, by4);
-	 printf("Sesudah\n");
+	 //~ printf("Sebelum\n");
+	 //~ printf("Point 1 = (%d, %d)\n",ax4, ay4);
+	 //~ printf("Point 2 = (%d, %d)\n",bx4, by4);
+	 //~ printf("Sesudah\n");
 	 coh(ax4,ay4,bx4,by4,xmn,ymn,xmx,ymx);
 	 
-	 printf("Sebelum\n");
-	 printf("Point 1 = (%d, %d)\n",ax5, ay5);
-	 printf("Point 2 = (%d, %d)\n",bx5, by5);
-	 printf("Sesudah\n");
+	 //~ printf("Sebelum\n");
+	 //~ printf("Point 1 = (%d, %d)\n",ax5, ay5);
+	 //~ printf("Point 2 = (%d, %d)\n",bx5, by5);
+	 //~ printf("Sesudah\n");
 	 coh(ax5,ay5,bx5,by5,xmn,ymn,xmx,ymx);
 	 
-	 printf("Sebelum\n");
-	 printf("Point 1 = (%d, %d)\n",ax6, ay6);
-	 printf("Point 2 = (%d, %d)\n",bx6, by6);
-	 printf("Sesudah\n");
+	 //~ printf("Sebelum\n");
+	 //~ printf("Point 1 = (%d, %d)\n",ax6, ay6);
+	 //~ printf("Point 2 = (%d, %d)\n",bx6, by6);
+	 //~ printf("Sesudah\n");
 	 coh(ax6,ay6,bx6,by6,xmn,ymn,xmx,ymx);
 	 
-	 printf("Sebelum\n");
-	 printf("Point 1 = (%d, %d)\n",ax7, ay7);
-	 printf("Point 2 = (%d, %d)\n",bx7, by7);
-	 printf("Sesudah\n");
+	 //~ printf("Sebelum\n");
+	 //~ printf("Point 1 = (%d, %d)\n",ax7, ay7);
+	 //~ printf("Point 2 = (%d, %d)\n",bx7, by7);
+	 //~ printf("Sesudah\n");
 	 coh(ax7,ay7,bx7,by7,xmn,ymn,xmx,ymx);
 	 
-	 printf("Sebelum\n");
-	 printf("Point 1 = (%d, %d)\n",ax8, ay8);
-	 printf("Point 2 = (%d, %d)\n",bx8, by8);
-	 printf("Sesudah\n");
+	 //~ printf("Sebelum\n");
+	 //~ printf("Point 1 = (%d, %d)\n",ax8, ay8);
+	 //~ printf("Point 2 = (%d, %d)\n",bx8, by8);
+	 //~ printf("Sesudah\n");
 	 coh(ax8,ay8,bx8,by8,xmn,ymn,xmx,ymx);
-	 //sleep(1000);
+	 delay(1000);
 	 
 	 
-	 //getch();
-	 //closegraph();
+	 getch();
+	 closegraph();
 	 return 0;
 }

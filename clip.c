@@ -1,77 +1,102 @@
-#include clip.h
+#include "clip.h"
 
-OutCode ComputeOutCode(double x, double y)
+Line line(int x1, int y1, int x2, int y2)
 {
-	OutCode code;
- 
-	code = INSIDE;          // initialised as being inside of clip window
- 
-	if (x < xmin)           // to the left of clip window
-		code |= LEFT;
-	else if (x > xmax)      // to the right of clip window
-		code |= RIGHT;
-	if (y < ymin)           // below the clip window
-		code |= BOTTOM;
-	else if (y > ymax)      // above the clip window
-		code |= TOP;
- 
-	return code;
+	Line line1;
+	line1.P1.x = x1;
+	line1.P1.y = y1;
+	line1.P2.x = x2;
+	line1.P2.y = y2;
+	return line1;
 }
 
-void CohenSutherlandLineClipAndDraw(double x0, double y0, double x1, double y1)
+//xmin = sisi kiri dari clip
+//ymin = sisi bawah dari clip
+//xmax = sisi kanan dari clip
+//ymax = sisi atas dari clip
+
+outcode compute(int x, int y , int xmax, int ymax, int xmin, int ymin)
 {
-	// compute outcodes for P0, P1, and whatever point lies outside the clip rectangle
-	OutCode outcode0 = ComputeOutCode(x0, y0);
-	OutCode outcode1 = ComputeOutCode(x1, y1);
-	bool accept = false;
- 
-	while (true) {
-		if (!(outcode0 | outcode1)) { // Bitwise OR is 0. Trivially accept and get out of loop
-			accept = true;
-			break;
-		} else if (outcode0 & outcode1) { // Bitwise AND is not 0. Trivially reject and get out of loop
-			break;
-		} else {
-			// failed both tests, so calculate the line segment to clip
-			// from an outside point to an intersection with clip edge
-			double x, y;
- 
-			// At least one endpoint is outside the clip rectangle; pick it.
-			OutCode outcodeOut = outcode0 ? outcode0 : outcode1;
- 
-			// Now find the intersection point;
-			// use formulas y = y0 + slope * (x - x0), x = x0 + (1 / slope) * (y - y0)
-			if (outcodeOut & TOP) {           // point is above the clip rectangle
-				x = x0 + (x1 - x0) * (ymax - y0) / (y1 - y0);
-				y = ymax;
-			} else if (outcodeOut & BOTTOM) { // point is below the clip rectangle
-				x = x0 + (x1 - x0) * (ymin - y0) / (y1 - y0);
-				y = ymin;
-			} else if (outcodeOut & RIGHT) {  // point is to the right of clip rectangle
-				y = y0 + (y1 - y0) * (xmax - x0) / (x1 - x0);
-				x = xmax;
-			} else if (outcodeOut & LEFT) {   // point is to the left of clip rectangle
-				y = y0 + (y1 - y0) * (xmin - x0) / (x1 - x0);
-				x = xmin;
+	outcode oc=0;
+	if(x<xmin)
+		oc|=LEFT;
+	else if(x>xmax)
+		oc|=RIGHT;
+	
+	if(y<ymax)
+		oc|=TOP;
+	else if(y>ymin)
+		oc|=BOTTOM;
+
+	return oc;
+}
+
+Line cohen_sutherland(int x1,int y1,int x2,int y2, int xmin,int ymin, int xmax, int ymax)
+{
+	bool accept = false, done=false;double m;
+	outcode o1,o2,ot;
+	o1=compute(x1,y1,xmax,ymax,xmin,ymin);
+	o2=compute(x2,y2,xmax,ymax,xmin,ymin);
+	do{
+
+		if(!(o1 | o2))
+		{
+			done=true;
+			accept=true;
+		}
+		else if(o1&o2)
+		{
+			done=true;
+		}
+		else
+		{
+			int x,y;
+			ot=o1?o1:o2;
+			if(ot & TOP)			// point is above the clip rectangle
+			{
+				//~ y=ymax;
+				//~ x = x1 + (x2-x1)*(ymax-y1)/(y2-y1); 
+				y=ymin;
+				x = x1 + (x2-x1) * (ymin - y1) / (y2-y1);
+			} 
+			else if(ot & BOTTOM) 	// point is below the clip rectangle
+			{
+				//~ y=ymin;
+				//~ x = x1 + (x2 - x1) * (ymin - y1) / (y2 - y1);
+				y=ymax;
+				x = x1 + (x2 - x1) * (ymax - y1) / (y2-y1);
 			}
- 
-			// Now we move outside point to intersection point to clip
-			// and get ready for next pass.
-			if (outcodeOut == outcode0) {
-				x0 = x;
-				y0 = y;
-				outcode0 = ComputeOutCode(x0, y0);
-			} else {
-				x1 = x;
-				y1 = y;
-				outcode1 = ComputeOutCode(x1, y1);
+			else if(ot & RIGHT)		// point is to the right of clip rectangle
+			{
+				x=xmax;
+				y = y1 + (y2 - y1) * (xmax - x1) / (x2 - x1);
+			}
+			else if(ot & LEFT)		// point is to the left of clip rectangle
+			{
+				x=xmin;
+				y = y1 + (y2 - y1) * (xmin - x1) / (x2 - x1);
+
+			}
+			if(ot==o1)
+			{
+				x1=x;
+				y1=y;
+				o1=compute(x1,y1,xmax,ymax,xmin,ymin);
+			}
+			else
+			{
+				x2=x;
+				y2=y;
+				o2=compute(x2,y2,xmax,ymax,xmin,ymin);
 			}
 		}
+	}while(done==false);
+
+	if(accept==true)
+	{
+		//printf("Point 1 = (%d, %d)\n",x1, y1);
+		//printf("Point 2 = (%d, %d)\n",x2, y2);
+		return line(x1,y1,x2,y2);
 	}
-	if (accept) {
-               // Following functions are left for implementation by user based on
-               // their platform (OpenGL/graphics.h etc.)
-               DrawRectangle(xmin, ymin, xmax, ymax);
-               LineSegment(x0, y0, x1, y1);
-	}
+	return line(0,0,0,0);
 }
