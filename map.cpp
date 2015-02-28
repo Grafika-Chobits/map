@@ -18,6 +18,7 @@
 #include "video.h"
 #include "plotting.h"
 #include "rotasi.h"
+#include "drawing.h"
 
 using namespace std;
 
@@ -201,15 +202,6 @@ void rotateBaling(Frame *frm,Coord loc, RGB col ,int counter ){
 	x4=temp;
 	drawBaling(frm,loc,x1,x2,x3,x4,y1,y2,y3,y4,col);
 }
-
-void drawKapal(Frame *frm, Coord loc, RGB color){
-	plotLine(frm,loc.x-15,loc.y-10,loc.x+15,loc.y-10,color);
-	plotLine(frm,loc.x-15,loc.y+10,loc.x+15,loc.y+10,color);
-	plotLine(frm,loc.x-15,loc.y-10,loc.x-20,loc.y,color);
-	plotLine(frm,loc.x+15,loc.y-10,loc.x+20,loc.y,color); 	
-	plotLine(frm,loc.x-15,loc.y+10,loc.x-20,loc.y,color);
-	plotLine(frm,loc.x+15,loc.y+10,loc.x+20,loc.y,color);
-	}
 
 Coord lengthEndPoint(Coord startingPoint, int angle, int length){
 	Coord endPoint;
