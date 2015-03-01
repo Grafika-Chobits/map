@@ -241,15 +241,15 @@ int main() {
 	int balingCounter=0;
 	int planeVelocity = 20;
 	int planeXPosition = canvasWidth;
-	int planeYPosition = 100;
+	int planeYPosition = 270;
 	int kapalXPosition = 250;
 	int kapalVelocity = 15;
 	int kapalYPosition = 250;
 
 	//cropping
 	vector<Line> mapLines;
-	//vector<Line> heliLines;
-	//vector<Line> kapalLines;
+	vector<Line> heliLines;
+	vector<Line> kapalLines;
 	
 	vector<Line> allLines;
 	vector<Line> croppedLines;
@@ -268,22 +268,26 @@ int main() {
 		
 		//Nambahin Lines biar semua jadi 1
 		mapLines = drawPeta(&canvas, coord(0,0), rgb(50,150,0));
-		//heliLines = drawPlane()
-		//kapalLines = drawKapal()
+		
+		heliLines=rotateBaling(&canvas,coord(planeXPosition -= planeVelocity,planeYPosition),rgb(255,255,255),balingCounter++);
+		
+		if(kapalXPosition>508 && kapalYPosition >50) {  //atas
+			kapalLines=drawKapalVertikal(&canvas,coord(kapalXPosition,kapalYPosition -= kapalVelocity),rgb(99,99,99));}
+			else if (kapalXPosition>120 && kapalYPosition >319) {  //kanan
+				kapalLines=drawKapal(&canvas,coord(kapalXPosition -= -kapalVelocity,kapalYPosition),rgb(99,99,99));}
+			else if (kapalXPosition >235 && kapalYPosition<51){ //kiri 
+				kapalLines=drawKapal(&canvas,coord(kapalXPosition -= kapalVelocity,kapalYPosition),rgb(99,99,99));}
+			else {kapalLines=drawKapalVertikal(&canvas,coord(kapalXPosition,kapalYPosition -= -kapalVelocity),rgb(99,99,99));} //bawah
+		allLines.insert(allLines.end(), kapalLines.begin(), kapalLines.end());
 		
 		allLines.insert(allLines.end(), mapLines.begin(), mapLines.end());
-		//allLines.insert(allLines.end(), heliLines.begin(), heliLines.end());
-		//allLines.insert(allLines.end(), kapalLines.begin(), kapalLines.end());
+		allLines.insert(allLines.end(), heliLines.begin(), heliLines.end());		
 		
 		//Draw window and get cropped lines								//100 = 1/2 size window
 		croppedLines = cohen_sutherland(&canvas, allLines, coord(500, 300), 50);
 		
 													//200 = size window
-		viewPort(&canvas, viewportOrigin, viewportSize, 100, croppedLines);
-		
-		drawKapal(&canvas,coord(kapalXPosition -= -kapalVelocity,kapalYPosition),rgb(99,99,99));
-		
-		rotateBaling(&canvas,coord(planeXPosition -= planeVelocity,planeYPosition),rgb(255,255,255),balingCounter++);
+		viewPort(&canvas, viewportOrigin, viewportSize, 100, croppedLines);		
 
 		//show frame
 		showFrame(&cFrame,&fb);	
