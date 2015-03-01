@@ -6,6 +6,8 @@
 #define End(Line) Line.end
 #define EndX(Line) Line.end.x
 #define EndY(Line) Line.end.y
+#define StartX(Line) Line.start.x
+#define StartY(Line) Line.start.y
 
 #define PI 3.14159265
 

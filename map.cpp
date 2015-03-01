@@ -19,6 +19,7 @@
 #include "plotting.h"
 #include "rotasi.h"
 #include "drawing.h"
+#include "clip.h"
 
 using namespace std;
 
