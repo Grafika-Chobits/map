@@ -20,6 +20,7 @@
 #include "rotasi.h"
 #include "drawing.h"
 #include "clip.h"
+//#include "keyboard.h"
 
 using namespace std;
 
@@ -247,6 +248,9 @@ int main() {
 	int kapalYPosition = 250;
 
 	//cropping
+	int c; //menampung input keyboard
+	Coord windowLocation = coord(500, 300);
+	int windowSize = 100;
 	vector<Line> mapLines;
 	//vector<Line> heliLines;
 	//vector<Line> kapalLines;
@@ -255,6 +259,30 @@ int main() {
 	vector<Line> croppedLines;
 	while (loop) {
 		
+		//~ //inputKeyboard gagal
+		//~ set_mode(1);
+		//~ c = get_key();
+		//~ if(c == 65)
+		//~ {
+			//~ printf("key %d\n", c);
+			//~ windowLocation.y-=10;
+		//~ }
+		//~ if(c == 66)
+		//~ {
+			//~ printf("key %d\n", c);
+			//~ windowLocation.y+=10;
+		//~ }
+		//~ if(c == 67)
+		//~ {
+			//~ printf("key %d\n", c);
+			//~ windowLocation.x+=10;
+		//~ }
+		//~ if(c == 68)
+		//~ {
+			//~ printf("key %d\n", c);
+			//~ windowLocation.x-=10;
+		//~ }
+			
 		// clean composition frame
 		flushFrame(&cFrame, rgb(33,33,33));
 				
@@ -276,10 +304,10 @@ int main() {
 		//allLines.insert(allLines.end(), kapalLines.begin(), kapalLines.end());
 		
 		//Draw window and get cropped lines								//100 = 1/2 size window
-		croppedLines = cohen_sutherland(&canvas, allLines, coord(500, 300), 50);
+		croppedLines = cohen_sutherland(&canvas, allLines, windowLocation, windowSize / 2);
 		
 													//200 = size window
-		viewPort(&canvas, viewportOrigin, viewportSize, 100, croppedLines);
+		viewPort(&canvas, viewportOrigin, viewportSize, windowSize, croppedLines);
 		
 		drawKapal(&canvas,coord(kapalXPosition -= -kapalVelocity,kapalYPosition),rgb(99,99,99));
 		
@@ -293,5 +321,6 @@ int main() {
 	munmap(fb.ptr, sInfo.smem_len);
 	close(fbFile);
 	fclose(fmouse);
+	//resetTermios();
 	return 0;
 }
