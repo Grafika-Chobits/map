@@ -7,7 +7,7 @@
 #include "allstruct.h"
 #include "drawing.h"
 
-const int TOP=8,BOTTOM=4,RIGHT=2,LEFT=1;
+const int TOP=4,BOTTOM=8,RIGHT=2,LEFT=1;
 
 typedef int outcode;
 

@@ -18,12 +18,12 @@ outcode compute(int x, int y , int xmax, int ymax, int xmin, int ymin)
 	else if(x>xmax)
 		oc|=RIGHT;
 	
-	if(y>ymax)
+	if(y<ymin)
 		oc|=TOP;
-	else if(y<ymin)
+	else if(y>ymax)
 		oc|=BOTTOM;
 
-	printf("oc = %d\n", oc);
+	//~ printf("oc = %d\n", oc);
 	return oc;
 }
 
@@ -50,29 +50,29 @@ void cohen_sutherland(Frame *frm, int x1,int y1,int x2,int y2, int xmin,int ymin
 			ot=o1?o1:o2; //Nyari point mana yang ada di luar kotak, kemudian masukin ke ot
 			if(ot & TOP)			// point is above the clip rectangle
 			{
-				printf("masuk top\n");
+				//~ printf("masuk top\n");
 				//~ y=ymax;
 				//~ x = x1 + (x2-x1)*(ymax-y1)/(y2-y1); 
-				y=ymax;
+				y=ymin;
 				x = x1 + (x2-x1) * (ymin - y1) / (y2-y1);
 			} 
 			else if(ot & BOTTOM) 	// point is below the clip rectangle
 			{
-				printf("masuk bottom\n");
+				//~ printf("masuk bottom\n");
 				//~ y=ymin;
 				//~ x = x1 + (x2 - x1) * (ymin - y1) / (y2 - y1);
-				y=ymin;
+				y=ymax;
 				x = x1 + (x2 - x1) * (ymax - y1) / (y2-y1);
 			}
 			else if(ot & RIGHT)		// point is to the right of clip rectangle
 			{
-				printf("masuk right\n");
+				//~ printf("masuk right\n");
 				x=xmax;
 				y = y1 + (y2 - y1) * (xmax - x1) / (x2 - x1);
 			}
 			else if(ot & LEFT)		// point is to the left of clip rectangle
 			{
-				printf("Masuk left\n");
+				//~ printf("Masuk left\n");
 				x=xmin;
 				y = y1 + (y2 - y1) * (xmin - x1) / (x2 - x1);
 
@@ -126,14 +126,14 @@ void cohen_sutherland(int x1,int y1,int x2,int y2, int xmin,int ymin, int xmax, 
 			{
 				//~ y=ymax;
 				//~ x = x1 + (x2-x1)*(ymax-y1)/(y2-y1); 
-				y=ymax;
+				y=ymin;
 				x = x1 + (x2-x1) * (ymin - y1) / (y2-y1);
 			} 
 			else if(ot & BOTTOM) 	// point is below the clip rectangle
 			{
 				//~ y=ymin;
 				//~ x = x1 + (x2 - x1) * (ymin - y1) / (y2 - y1);
-				y=ymin;
+				y=ymax;
 				x = x1 + (x2 - x1) * (ymax - y1) / (y2-y1);
 			}
 			else if(ot & RIGHT)		// point is to the right of clip rectangle
@@ -171,6 +171,7 @@ void cohen_sutherland(int x1,int y1,int x2,int y2, int xmin,int ymin, int xmax, 
 	}
 	else
 	{
+		printf("Not accepted\n");
 		printf("Point 1 = (%d, %d)\n",x1, y1);
 		printf("Point 2 = (%d, %d)\n",x2, y2);
 	}

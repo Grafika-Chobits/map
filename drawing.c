@@ -419,31 +419,33 @@ void drawPeta(Frame *frame, Coord center, RGB color) {
 	//papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-10, EndY(papua.back())-6)));
 
 	drawSquare(frame, coord(400, 300), coord(800, 600), color);
-	std::vector<Line> allLine;
-	Line temp;
-	StartX(temp) = 900;
-	StartY(temp) = 800;
-	EndX(temp)	 = 700;
-	EndY(temp)	 = 500;
-	plotLine(frame, temp, color);
-	usleep(2000);
-	cohen_sutherland(frame, StartX(temp), StartY(temp), EndX(temp), EndY(temp), 400, 300, 800, 600, color);
+	//~ std::vector<Line> allLine;
+	//~ Line temp;
+	//~ StartX(temp) = 1000;
+	//~ StartY(temp) = 150;
+	//~ EndX(temp)	 = 700;
+	//~ EndY(temp)	 = 500;
+	//~ //plotLine(frame, temp, color);
+	//~ //usleep(2000);
+	//~ cohen_sutherland(frame, StartX(temp), StartY(temp), EndX(temp), EndY(temp), 400, 300, 800, 600, color);
 	
 	for(int i=0;i<sumatera.size();++i)  
 	{
-		plotLine(frame, sumatera.at(i), color);
+		cohen_sutherland(frame, StartX(sumatera.at(i)), StartY(sumatera.at(i)), EndX(sumatera.at(i)), EndY(sumatera.at(i)), 400, 300, 800, 600, color);
+		//plotLine(frame, sumatera.at(i), color);
 	}
 	
 	for(int i=0;i<jawa.size();++i)
-		plotLine(frame, jawa.at(i), color);
+		cohen_sutherland(frame, StartX(jawa.at(i)), StartY(jawa.at(i)), EndX(jawa.at(i)), EndY(jawa.at(i)), 400, 300, 800, 600, color);
+		//plotLine(frame, jawa.at(i), color);
 	for(int i=0;i<kalimantan.size();++i)
 	{
-		//temp = cohen_sutherland(StartX(kalimantan.at(i)), StartY(kalimantan.at(i)), EndX(kalimantan.at(i)), EndY(kalimantan.at(i)), 400, 300, 800, 600);
+		cohen_sutherland(frame, StartX(kalimantan.at(i)), StartY(kalimantan.at(i)), EndX(kalimantan.at(i)), EndY(kalimantan.at(i)), 400, 300, 800, 600, color);
 		//plotLine(frame, temp, color);
 	}
 	for(int i=0;i<sulawesi.size();++i)
 	{
-		//temp = cohen_sutherland(StartX(sulawesi.at(i)), StartY(sulawesi.at(i)), EndX(sulawesi.at(i)), EndY(sulawesi.at(i)), 400, 300, 800, 600);
+		cohen_sutherland(frame, StartX(sulawesi.at(i)), StartY(sulawesi.at(i)), EndX(sulawesi.at(i)), EndY(sulawesi.at(i)), 400, 300, 800, 600, color);
 		//plotLine(frame, temp, color);
 	}
 	for(int i=0;i<papua.size();++i)
