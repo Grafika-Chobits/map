@@ -32,7 +32,6 @@ std::vector<Line> cohen_sutherland(Frame *canvas, std::vector<Line> lines, Coord
 	int xmax = center.x + size;
 	int ymax = center.y + size;
 	int x1, y1, x2, y2;
-	//printf("Banyaknya lines = %d\n", lines.size());
 	std::vector<Line> clippedLines;
 	for (int i = 0; i < lines.size(); i++)
 	{
@@ -97,9 +96,7 @@ std::vector<Line> cohen_sutherland(Frame *canvas, std::vector<Line> lines, Coord
 
 		if(accept==true)
 		{
-			printf("Setelah Diproses: %d, %d, %d, %d\n", x1, y1, x2, y2);
-			clippedLines.push_back(line(coord(x1,y1),coord(x2,y2)));
-			//plotLine(frm, line(coord(x1,y1),coord(x2,y2)), color);
+			clippedLines.push_back(line(coord(x1 - xmin, y1 - ymin),coord(x2 - xmin,y2 - ymin)));
 		}
 		drawSquare(canvas, coord(xmin, ymin), coord(xmax, ymax), rgb(255,255,0));
 	}
@@ -195,15 +192,11 @@ void cohen_sutherland(int x1,int y1,int x2,int y2, int xmin,int ymin, int xmax, 
 			ot=o1?o1:o2; //Nyari point mana yang ada di luar kotak, kemudian masukin ke ot
 			if(ot & TOP)			// point is above the clip rectangle
 			{
-				//~ y=ymax;
-				//~ x = x1 + (x2-x1)*(ymax-y1)/(y2-y1); 
 				y=ymin;
 				x = x1 + (x2-x1) * (ymin - y1) / (y2-y1);
 			} 
 			else if(ot & BOTTOM) 	// point is below the clip rectangle
 			{
-				//~ y=ymin;
-				//~ x = x1 + (x2 - x1) * (ymin - y1) / (y2 - y1);
 				y=ymax;
 				x = x1 + (x2 - x1) * (ymax - y1) / (y2-y1);
 			}
@@ -214,7 +207,6 @@ void cohen_sutherland(int x1,int y1,int x2,int y2, int xmin,int ymin, int xmax, 
 			}
 			else if(ot & LEFT)		// point is to the left of clip rectangle
 			{
-				printf("Masuk left\n");
 				x=xmin;
 				y = y1 + (y2 - y1) * (xmin - x1) / (x2 - x1);
 
@@ -238,7 +230,6 @@ void cohen_sutherland(int x1,int y1,int x2,int y2, int xmin,int ymin, int xmax, 
 	{
 		printf("Point 1 = (%d, %d)\n",x1, y1);
 		printf("Point 2 = (%d, %d)\n",x2, y2);
-		//plotLine(frm, line(coord(x1,y1),coord(x2,y2)), color);
 	}
 	else
 	{
@@ -246,5 +237,4 @@ void cohen_sutherland(int x1,int y1,int x2,int y2, int xmin,int ymin, int xmax, 
 		printf("Point 1 = (%d, %d)\n",x1, y1);
 		printf("Point 2 = (%d, %d)\n",x2, y2);
 	}
-	//return line(coord(0,0),coord(0,0));
 }

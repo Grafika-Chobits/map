@@ -159,16 +159,24 @@ Coord lengthEndPoint(Coord startingPoint, int angle, int length){
 	return endPoint;
 }
 
-void viewPort(Frame *frame, Coord origin, int size){
+//origin, pojok kiri atas viewPort
+void viewPort(Frame *frame, Coord origin, int viewportSize, int windowSize, std::vector<Line> originalLines){
 	// viewport frame
-	plotLine(frame, origin.x, origin.y, origin.x + size, origin.y, rgb(255,255,255));
-	plotLine(frame, origin.x, origin.y, origin.x, origin.y + size, rgb(255,255,255));
-	plotLine(frame, origin.x, origin.y + size, origin.x + size, origin.y + size, rgb(255,255,255));
-	plotLine(frame, origin.x + size, origin.y, origin.x + size, origin.y + size, rgb(255,255,255));
-}
-
-void window(Frame *frame, Coord origin, int size){
+	plotLine(frame, origin.x, origin.y, origin.x + viewportSize, origin.y, rgb(255,255,255));
+	plotLine(frame, origin.x, origin.y, origin.x, origin.y + viewportSize, rgb(255,255,255));
+	plotLine(frame, origin.x, origin.y + viewportSize, origin.x + viewportSize, origin.y + viewportSize, rgb(255,255,255));
+	plotLine(frame, origin.x + viewportSize, origin.y, origin.x + viewportSize, origin.y + viewportSize, rgb(255,255,255));
 	
+	// transform line, then draw
+	std::vector<Line> transformedLines;
+	for(int i = 0; i < originalLines.size(); i++){
+		int startX = int((double)originalLines.at(i).start.x * (double)viewportSize / (double)windowSize) + origin.x;
+		int startY = int((double)originalLines.at(i).start.y * (double)viewportSize / (double)windowSize) + origin.y;
+		int endX = int((double)originalLines.at(i).end.x * (double)viewportSize / (double)windowSize) + origin.x;
+		int endY = int((double)originalLines.at(i).end.y * (double)viewportSize / (double)windowSize) + origin.y;
+		transformedLines.push_back(line(coord(startX, startY), coord(endX, endY)));
+		plotLine(frame, transformedLines.at(i), rgb(50, 150, 0));
+	}
 }
 
 /* MAIN FUNCTION ------------------------------------------------------- */
@@ -238,7 +246,7 @@ int main() {
 	int kapalVelocity = 15;
 	int kapalYPosition = 250;
 
-	//crop
+	//cropping
 	vector<Line> mapLines;
 	//vector<Line> heliLines;
 	//vector<Line> kapalLines;
@@ -249,8 +257,6 @@ int main() {
 		
 		// clean composition frame
 		flushFrame(&cFrame, rgb(33,33,33));
-		
-		viewPort(&canvas, viewportOrigin, viewportSize);
 				
 		showCanvas(&cFrame, &canvas, canvasWidth, canvasHeight, canvasPosition, rgb(99,99,99), 1);
 								
@@ -268,14 +274,12 @@ int main() {
 		allLines.insert(allLines.end(), mapLines.begin(), mapLines.end());
 		//allLines.insert(allLines.end(), heliLines.begin(), heliLines.end());
 		//allLines.insert(allLines.end(), kapalLines.begin(), kapalLines.end());
-		//~ printf("Ukuran allLines = %d\n", allLines.size());
 		
-		//Draw window and get cropped lines
-		croppedLines = cohen_sutherland(&canvas, allLines, coord(450, 300), 100);
-		//printf("Jumlah cropped lines = %d\n", croppedLines.size());
-		for(int i = 0; i < croppedLines.size(); i++)
-			plotLine(&canvas, croppedLines.at(i), rgb(0,255,0));
-			//cohen_sutherland (&canvas, StartX(croppedLines.at(i)),StartY(croppedLines.at(i)),EndX(croppedLines.at(i)),EndY(croppedLines.at(i)), 400, 400, 1000, 600, rgb(255,0,0));
+		//Draw window and get cropped lines								//100 = 1/2 size window
+		croppedLines = cohen_sutherland(&canvas, allLines, coord(500, 300), 50);
+		
+													//200 = size window
+		viewPort(&canvas, viewportOrigin, viewportSize, 100, croppedLines);
 		
 		drawKapal(&canvas,coord(kapalXPosition -= -kapalVelocity,kapalYPosition),rgb(99,99,99));
 		
