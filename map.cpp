@@ -272,9 +272,9 @@ int main() {
 		
 		//Draw window and get cropped lines
 		croppedLines = cohen_sutherland(&canvas, allLines, coord(450, 300), 100);
-		printf("Jumlah cropped lines = %d\n", croppedLines.size());
+		//printf("Jumlah cropped lines = %d\n", croppedLines.size());
 		for(int i = 0; i < croppedLines.size(); i++)
-			plotLine(&cFrame, croppedLines.at(i), rgb(0,255,0));
+			plotLine(&canvas, croppedLines.at(i), rgb(0,255,0));
 			//cohen_sutherland (&canvas, StartX(croppedLines.at(i)),StartY(croppedLines.at(i)),EndX(croppedLines.at(i)),EndY(croppedLines.at(i)), 400, 400, 1000, 600, rgb(255,0,0));
 		
 		drawKapal(&canvas,coord(kapalXPosition -= -kapalVelocity,kapalYPosition),rgb(99,99,99));

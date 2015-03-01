@@ -32,7 +32,7 @@ std::vector<Line> cohen_sutherland(Frame *canvas, std::vector<Line> lines, Coord
 	int xmax = center.x + size;
 	int ymax = center.y + size;
 	int x1, y1, x2, y2;
-	printf("Banyaknya lines = %d\n", lines.size());
+	//printf("Banyaknya lines = %d\n", lines.size());
 	std::vector<Line> clippedLines;
 	for (int i = 0; i < lines.size(); i++)
 	{
@@ -102,8 +102,8 @@ std::vector<Line> cohen_sutherland(Frame *canvas, std::vector<Line> lines, Coord
 			//plotLine(frm, line(coord(x1,y1),coord(x2,y2)), color);
 		}
 		drawSquare(canvas, coord(xmin, ymin), coord(xmax, ymax), rgb(255,255,0));
-		return clippedLines;
 	}
+	return clippedLines;
 }
 
 
