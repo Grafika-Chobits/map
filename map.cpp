@@ -435,7 +435,12 @@ void drawBaling(Frame *frm , Coord loc,int x1,int x2,int x3,int x4,int y1,int y2
 	int xOffset = loc.x-x1;
 	int yOffset = loc.y-y1;
 
-	plotCircle(frm,loc.x,loc.y,15,color);
+	plotCircle(frm,loc.x,loc.y,2,color);
+	plotLine(frm,loc.x-5,loc.y-3,loc.x+15,loc.y-3,color);
+	plotLine(frm,loc.x+15,loc.y-3,loc.x+15,loc.y+3,color);
+	plotLine(frm,loc.x+15,loc.y+3,loc.x-5,loc.y+3,color);
+	plotLine(frm,loc.x-5,loc.y+3,loc.x-5,loc.y-3,color);
+
 	std::vector<Coord> balingCoordinates;
 	balingCoordinates.push_back(loc);
 	balingCoordinates.push_back(coord(x1, y1));
@@ -464,10 +469,10 @@ void drawBaling(Frame *frm , Coord loc,int x1,int x2,int x3,int x4,int y1,int y2
 }
 
 void rotateBaling(Frame *frm,Coord loc, RGB col ,int counter ){
-	int x1=loc.x+40; int y1=loc.y+5;
-	int x2=loc.x+40; int y2=loc.y-5;
-	int x3=loc.x-40; int y3=loc.y+5;
-	int x4=loc.x-40; int y4=loc.y-5;
+	int x1=loc.x+10; int y1=loc.y+2;
+	int x2=loc.x+10; int y2=loc.y-2;
+	int x3=loc.x-10; int y3=loc.y+2;
+	int x4=loc.x-10; int y4=loc.y-2;
 	
 	int temp;
 	temp=rotasiX(x1,y1,loc,counter*10);
@@ -492,6 +497,15 @@ void drawKapal(Frame *frm, Coord loc, RGB color){
 	plotLine(frm,loc.x+15,loc.y-10,loc.x+20,loc.y,color); 	
 	plotLine(frm,loc.x-15,loc.y+10,loc.x-20,loc.y,color);
 	plotLine(frm,loc.x+15,loc.y+10,loc.x+20,loc.y,color);
+	}
+	
+void drawKapalVertikal (Frame *frm, Coord loc, RGB color){
+	plotLine(frm,loc.x-10,loc.y-15,loc.x-10,loc.y+15,color);
+	plotLine(frm,loc.x+10,loc.y-15,loc.x+10,loc.y+15,color);
+	plotLine(frm,loc.x,loc.y-20,loc.x-10,loc.y-15,color);
+	plotLine(frm,loc.x,loc.y-20,loc.x+10,loc.y-15,color); 	
+	plotLine(frm,loc.x,loc.y+20,loc.x-10,loc.y+15,color);
+	plotLine(frm,loc.x,loc.y+20,loc.x+10,loc.y+15,color);	
 	}
 
 Coord lengthEndPoint(Coord startingPoint, int angle, int length){
@@ -985,12 +999,12 @@ int main() {
 	
 	//baling
 	int balingCounter=0;
-	int planeVelocity = 20;
+	int planeVelocity = 10;
 	int planeXPosition = canvasWidth;
 	int planeYPosition = 100;
-	int kapalXPosition = 250;
+	int kapalXPosition = 225;
 	int kapalVelocity = 15;
-	int kapalYPosition = 250;
+	int kapalYPosition = 329;
 
 	while (loop) {
 		
@@ -1006,10 +1020,18 @@ int main() {
 
 		drawPeta(&canvas, coord(0,0), rgb(50,150,0));
 
-		drawKapal(&canvas,coord(kapalXPosition -= -kapalVelocity,kapalYPosition),rgb(99,99,99));
+		if(kapalXPosition>509 && kapalYPosition >40) {  //atas
+			drawKapalVertikal(&canvas,coord(kapalXPosition,kapalYPosition -= kapalVelocity),rgb(99,99,99));}
+			else if (kapalXPosition>100 && kapalYPosition >320) {  //kanan
+				drawKapal(&canvas,coord(kapalXPosition -= -kapalVelocity,kapalYPosition),rgb(99,99,99));}
+			else if (kapalXPosition >225 && kapalYPosition<40){ //kiri 
+				drawKapal(&canvas,coord(kapalXPosition -= kapalVelocity,kapalYPosition),rgb(99,99,99));}
+			else {drawKapalVertikal(&canvas,coord(kapalXPosition,kapalYPosition -= -kapalVelocity),rgb(99,99,99));} //bawah
 		
+					
 		rotateBaling(&canvas,coord(planeXPosition -= planeVelocity,planeYPosition),rgb(255,255,255),balingCounter++);
-
+		
+		
 		//show frame
 		showFrame(&cFrame,&fb);	
 	}
