@@ -238,6 +238,13 @@ int main() {
 	int kapalVelocity = 15;
 	int kapalYPosition = 250;
 
+	//crop
+	vector<Line> mapLines;
+	//vector<Line> heliLines;
+	//vector<Line> kapalLines;
+	
+	vector<Line> allLines;
+	vector<Line> croppedLines;
 	while (loop) {
 		
 		// clean composition frame
@@ -249,9 +256,27 @@ int main() {
 								
 		// clean canvas
 		flushFrame(&canvas, rgb(0,0,0));
-
-		drawPeta(&canvas, coord(0,0), rgb(50,150,0));
-
+		
+		//clean vector
+		allLines.clear();
+		
+		//Nambahin Lines biar semua jadi 1
+		mapLines = drawPeta(&canvas, coord(0,0), rgb(50,150,0));
+		//heliLines = drawPlane()
+		//kapalLines = drawKapal()
+		
+		allLines.insert(allLines.end(), mapLines.begin(), mapLines.end());
+		//allLines.insert(allLines.end(), heliLines.begin(), heliLines.end());
+		//allLines.insert(allLines.end(), kapalLines.begin(), kapalLines.end());
+		//~ printf("Ukuran allLines = %d\n", allLines.size());
+		
+		//Draw window and get cropped lines
+		croppedLines = cohen_sutherland(&canvas, allLines, coord(450, 300), 100);
+		printf("Jumlah cropped lines = %d\n", croppedLines.size());
+		for(int i = 0; i < croppedLines.size(); i++)
+			plotLine(&cFrame, croppedLines.at(i), rgb(0,255,0));
+			//cohen_sutherland (&canvas, StartX(croppedLines.at(i)),StartY(croppedLines.at(i)),EndX(croppedLines.at(i)),EndY(croppedLines.at(i)), 400, 400, 1000, 600, rgb(255,0,0));
+		
 		drawKapal(&canvas,coord(kapalXPosition -= -kapalVelocity,kapalYPosition),rgb(99,99,99));
 		
 		rotateBaling(&canvas,coord(planeXPosition -= planeVelocity,planeYPosition),rgb(255,255,255),balingCounter++);

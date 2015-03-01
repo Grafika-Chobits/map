@@ -21,7 +21,7 @@ void drawKapal(Frame *frm, Coord loc, RGB color){
 	plotLine(frm,loc.x+15,loc.y+10,loc.x+20,loc.y,color);
 	}
 
-void drawPeta(Frame *frame, Coord center, RGB color) {
+std::vector<Line> drawPeta(Frame *frame, Coord center, RGB color) {
 	std::vector<Line> sumatera;
 	Coord offset = coord(30, 10);
 	sumatera.push_back(line(offset, coord(offset.x+20, offset.y+20)));
@@ -417,40 +417,45 @@ void drawPeta(Frame *frame, Coord center, RGB color) {
 	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+1, EndY(papua.back())-3)));
 	papua.push_back(line(End(papua.back()), offsetPapua));
 	//papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-10, EndY(papua.back())-6)));
-
-	std::vector<Line> allLine;
-	drawSquare(frame, coord(400, 300), coord(800, 600), color);
 	
+	std::vector<Line> petaLines;
 	for(int i=0;i<sumatera.size();++i)  
 	{
-		allLine.push_back(sumatera.at(i));
+		petaLines.push_back(sumatera.at(i));
 		//cohen_sutherland(frame, StartX(sumatera.at(i)), StartY(sumatera.at(i)), EndX(sumatera.at(i)), EndY(sumatera.at(i)), 400, 300, 800, 600, color);
 		plotLine(frame, sumatera.at(i), color);
 	}
 	
 	for(int i=0;i<jawa.size();++i)
 	{
-		allLine.push_back(jawa.at(i));
+		petaLines.push_back(jawa.at(i));
 		plotLine(frame, jawa.at(i), color);
 		//cohen_sutherland(frame, StartX(jawa.at(i)), StartY(jawa.at(i)), EndX(jawa.at(i)), EndY(jawa.at(i)), 400, 300, 800, 600, rgb(100,100,100));
 	}
 	for(int i=0;i<kalimantan.size();++i)
 	{
-		allLine.push_back(kalimantan.at(i));
+		petaLines.push_back(kalimantan.at(i));
 		//cohen_sutherland(frame, StartX(kalimantan.at(i)), StartY(kalimantan.at(i)), EndX(kalimantan.at(i)), EndY(kalimantan.at(i)), 400, 300, 800, 600, color);
 		plotLine(frame, kalimantan.at(i), color);
 	}
 	for(int i=0;i<sulawesi.size();++i)
 	{
-		allLine.push_back(sulawesi.at(i));
+		petaLines.push_back(sulawesi.at(i));
 		//cohen_sutherland(frame, StartX(sulawesi.at(i)), StartY(sulawesi.at(i)), EndX(sulawesi.at(i)), EndY(sulawesi.at(i)), 400, 300, 800, 600, color);
 		plotLine(frame, sulawesi.at(i), color);
 	}
 	for(int i=0;i<papua.size();++i)
 	{
-		allLine.push_back(papua.at(i));
+		petaLines.push_back(papua.at(i));
 		plotLine(frame, papua.at(i), color);
 	}
+	
+	//~ printf("Ukuran Sumatera = %d\n", sumatera.size());
+	//~ printf("Ukuran jawa = %d\n", jawa.size());
+	//~ printf("Ukuran kalimantan = %d\n", kalimantan.size());
+	//~ printf("Ukuran sulawesi = %d\n", sulawesi.size());
+	//~ printf("Ukuran papua = %d\n", papua.size());
+	return petaLines;
 }
 
 void rotateBaling(Frame *frm,Coord loc, RGB col ,int counter ){

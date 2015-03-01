@@ -25,73 +25,84 @@ outcode compute(int x, int y , int xmax, int ymax, int xmin, int ymin)
 	return oc;
 }
 
-std::vector<Line> cohen_sutherland(Frame *frm, std::vector<Line> lines, Coord center, int wide, RGB color)
+std::vector<Line> cohen_sutherland(Frame *canvas, std::vector<Line> lines, Coord center, int size)
 {
-	int xmin = center.x- wide;
-	int ymin = center.y - wide;
-	int xmax = center.x + wide;
-	int ymax = center.y + wide;
-	
-	std::vector<Line> newLine;
-	bool accept = false, done=false;double m;
-	outcode o1,o2,ot;
-	o1=compute(x1,y1,xmax,ymax,xmin,ymin);
-	o2=compute(x2,y2,xmax,ymax,xmin,ymin);
-	do{
+	int xmin = center.x - size;
+	int ymin = center.y - size;
+	int xmax = center.x + size;
+	int ymax = center.y + size;
+	int x1, y1, x2, y2;
+	printf("Banyaknya lines = %d\n", lines.size());
+	std::vector<Line> clippedLines;
+	for (int i = 0; i < lines.size(); i++)
+	{
+		x1 = StartX(lines.at(i));
+		y1 = StartY(lines.at(i));
+		x2 = EndX(lines.at(i));
+		y2 = EndY(lines.at(i));
+		bool accept = false, done=false;double m;
+		outcode o1,o2,ot;
+		o1=compute(x1,y1,xmax,ymax,xmin,ymin);
+		o2=compute(x2,y2,xmax,ymax,xmin,ymin);
+		do{
 
-		if(!(o1 | o2))
-		{
-			done=true;
-			accept=true;
-		}
-		else if(o1&o2)
-		{
-			done=true;
-		}
-		else
-		{
-			int x,y;
-			ot=o1?o1:o2; //Nyari point mana yang ada di luar kotak, kemudian masukin ke ot
-			if(ot & TOP)			// point is above the clip rectangle
+			if(!(o1 | o2))
 			{
-				y=ymin;
-				x = x1 + (x2-x1) * (ymin - y1) / (y2-y1);
-			} 
-			else if(ot & BOTTOM) 	// point is below the clip rectangle
-			{
-				y=ymax;
-				x = x1 + (x2 - x1) * (ymax - y1) / (y2-y1);
+				done=true;
+				accept=true;
 			}
-			else if(ot & RIGHT)		// point is to the right of clip rectangle
+			else if(o1&o2)
 			{
-				x=xmax;
-				y = y1 + (y2 - y1) * (xmax - x1) / (x2 - x1);
-			}
-			else if(ot & LEFT)		// point is to the left of clip rectangle
-			{
-				x=xmin;
-				y = y1 + (y2 - y1) * (xmin - x1) / (x2 - x1);
-
-			}
-			if(ot==o1)
-			{
-				x1=x;
-				y1=y;
-				o1=compute(x1,y1,xmax,ymax,xmin,ymin);
+				done=true;
 			}
 			else
 			{
-				x2=x;
-				y2=y;
-				o2=compute(x2,y2,xmax,ymax,xmin,ymin);
-			}
-		}
-	}while(done==false);
+				int x,y;
+				ot=o1?o1:o2; //Nyari point mana yang ada di luar kotak, kemudian masukin ke ot
+				if(ot & TOP)			// point is above the clip rectangle
+				{
+					y=ymin;
+					x = x1 + (x2-x1) * (ymin - y1) / (y2-y1);
+				} 
+				else if(ot & BOTTOM) 	// point is below the clip rectangle
+				{
+					y=ymax;
+					x = x1 + (x2 - x1) * (ymax - y1) / (y2-y1);
+				}
+				else if(ot & RIGHT)		// point is to the right of clip rectangle
+				{
+					x=xmax;
+					y = y1 + (y2 - y1) * (xmax - x1) / (x2 - x1);
+				}
+				else if(ot & LEFT)		// point is to the left of clip rectangle
+				{
+					x=xmin;
+					y = y1 + (y2 - y1) * (xmin - x1) / (x2 - x1);
 
-	if(accept==true)
-	{
-		newLine.push_back(line(coord(x1,y1),coord(x2,y2)));
-		//plotLine(frm, line(coord(x1,y1),coord(x2,y2)), color);
+				}
+				if(ot==o1)
+				{
+					x1=x;
+					y1=y;
+					o1=compute(x1,y1,xmax,ymax,xmin,ymin);
+				}
+				else
+				{
+					x2=x;
+					y2=y;
+					o2=compute(x2,y2,xmax,ymax,xmin,ymin);
+				}
+			}
+		}while(done==false);
+
+		if(accept==true)
+		{
+			printf("Setelah Diproses: %d, %d, %d, %d\n", x1, y1, x2, y2);
+			clippedLines.push_back(line(coord(x1,y1),coord(x2,y2)));
+			//plotLine(frm, line(coord(x1,y1),coord(x2,y2)), color);
+		}
+		drawSquare(canvas, coord(xmin, ymin), coord(xmax, ymax), rgb(255,255,0));
+		return clippedLines;
 	}
 }
 
