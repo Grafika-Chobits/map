@@ -463,7 +463,7 @@ void drawBaling(Frame *frm , Coord loc,int x1,int x2,int x3,int x4,int y1,int y2
 	int balingHeight = 80;
 }
 
-void rotateBaling(Frame *frm,Coord loc, RGB col ,int counter ){
+void rotateBaling(Frame *frm,Coord loc, RGB col ,int counter){
 	int x1=loc.x+40; int y1=loc.y+5;
 	int x2=loc.x+40; int y2=loc.y-5;
 	int x3=loc.x-40; int y3=loc.y+5;
@@ -492,7 +492,7 @@ void drawKapal(Frame *frm, Coord loc, RGB color){
 	plotLine(frm,loc.x+15,loc.y-10,loc.x+20,loc.y,color); 	
 	plotLine(frm,loc.x-15,loc.y+10,loc.x-20,loc.y,color);
 	plotLine(frm,loc.x+15,loc.y+10,loc.x+20,loc.y,color);
-	}
+}
 
 Coord lengthEndPoint(Coord startingPoint, int angle, int length){
 	Coord endPoint;
@@ -503,16 +503,42 @@ Coord lengthEndPoint(Coord startingPoint, int angle, int length){
 	return endPoint;
 }
 
-void viewPort(Frame *frame, Coord origin, int size){
+void viewPort(Frame *frame, Coord origin, int viewportSize, int windowSize, std::vector<Line> originalLines){
 	// viewport frame
+	plotLine(frame, origin.x, origin.y, origin.x + viewportSize, origin.y, rgb(255,255,255));
+	plotLine(frame, origin.x, origin.y, origin.x, origin.y + viewportSize, rgb(255,255,255));
+	plotLine(frame, origin.x, origin.y + viewportSize, origin.x + viewportSize, origin.y + viewportSize, rgb(255,255,255));
+	plotLine(frame, origin.x + viewportSize, origin.y, origin.x + viewportSize, origin.y + viewportSize, rgb(255,255,255));
+	
+	// transform line, then draw
+	std::vector<Line> transformedLines;
+	for(int i = 0; i < originalLines.size(); i++){
+		int startX = int((double)originalLines.at(i).start.x * (double)viewportSize / (double)windowSize) + origin.x;
+		int startY = int((double)originalLines.at(i).start.y * (double)viewportSize / (double)windowSize) + origin.y;
+		int endX = int((double)originalLines.at(i).end.x * (double)viewportSize / (double)windowSize + origin.x);
+		int endY = int((double)originalLines.at(i).end.y * (double)viewportSize / (double)windowSize + origin.y);
+		transformedLines.push_back(line(coord(startX, startY), coord(endX, endY)));
+		plotLine(frame, transformedLines.at(i), rgb(50, 150, 0));
+	}
+	
+	
+}
+
+void window(Frame *frame, Coord origin, int size, std::vector<Line> originalLines){
+	// window frame
 	plotLine(frame, origin.x, origin.y, origin.x + size, origin.y, rgb(255,255,255));
 	plotLine(frame, origin.x, origin.y, origin.x, origin.y + size, rgb(255,255,255));
 	plotLine(frame, origin.x, origin.y + size, origin.x + size, origin.y + size, rgb(255,255,255));
 	plotLine(frame, origin.x + size, origin.y, origin.x + size, origin.y + size, rgb(255,255,255));
-}
-
-void window(Frame *frame, Coord origin, int size){
 	
+	// draw lines
+	for(int i = 0; i < originalLines.size(); i++){
+		int startX = originalLines.at(i).start.x + origin.x;
+		int startY = originalLines.at(i).start.y + origin.y;
+		int endX = originalLines.at(i).end.x + origin.x;
+		int endY = originalLines.at(i).end.y + origin.y;
+		plotLine(frame, startX, startY, endX, endY, rgb(50,150,0));
+	}
 }
 
 void drawPeta(Frame *frame, Coord center, RGB color) {
@@ -997,7 +1023,14 @@ int main() {
 		// clean composition frame
 		flushFrame(&cFrame, rgb(33,33,33));
 		
-		viewPort(&canvas, viewportOrigin, viewportSize);
+		std::vector<Line> test;
+		test.push_back(line(coord(10,10), coord(20,20)));
+		test.push_back(line(coord(20,20), coord(30,10)));
+		test.push_back(line(coord(30,10), coord(10,10)));
+		
+		window(&canvas, coord(200, 600), 100, test); 
+		
+		viewPort(&canvas, viewportOrigin, viewportSize, 100, test);
 				
 		showCanvas(&cFrame, &canvas, canvasWidth, canvasHeight, canvasPosition, rgb(99,99,99), 1);
 								
