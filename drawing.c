@@ -418,7 +418,7 @@ void drawPeta(Frame *frame, Coord center, RGB color) {
 	papua.push_back(line(End(papua.back()), offsetPapua));
 	//papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-10, EndY(papua.back())-6)));
 
-	drawSquare(frame, coord(400, 300), coord(800, 600), color);
+	drawSquare(frame, coord(200, 200), coord(400, 400), color);
 	//~ std::vector<Line> allLine;
 	//~ Line temp;
 	//~ StartX(temp) = 1000;
@@ -431,21 +431,21 @@ void drawPeta(Frame *frame, Coord center, RGB color) {
 	
 	for(int i=0;i<sumatera.size();++i)  
 	{
-		cohen_sutherland(frame, StartX(sumatera.at(i)), StartY(sumatera.at(i)), EndX(sumatera.at(i)), EndY(sumatera.at(i)), 400, 300, 800, 600, color);
+		cohen_sutherland(frame, StartX(sumatera.at(i)), StartY(sumatera.at(i)), EndX(sumatera.at(i)), EndY(sumatera.at(i)), 200, 200, 400, 400, color);
 		//plotLine(frame, sumatera.at(i), color);
 	}
 	
 	for(int i=0;i<jawa.size();++i)
-		cohen_sutherland(frame, StartX(jawa.at(i)), StartY(jawa.at(i)), EndX(jawa.at(i)), EndY(jawa.at(i)), 400, 300, 800, 600, color);
+		cohen_sutherland(frame, StartX(jawa.at(i)), StartY(jawa.at(i)), EndX(jawa.at(i)), EndY(jawa.at(i)), 200, 200, 400, 400, color);
 		//plotLine(frame, jawa.at(i), color);
 	for(int i=0;i<kalimantan.size();++i)
 	{
-		cohen_sutherland(frame, StartX(kalimantan.at(i)), StartY(kalimantan.at(i)), EndX(kalimantan.at(i)), EndY(kalimantan.at(i)), 400, 300, 800, 600, color);
+		cohen_sutherland(frame, StartX(kalimantan.at(i)), StartY(kalimantan.at(i)), EndX(kalimantan.at(i)), EndY(kalimantan.at(i)), 200, 200, 400, 400, color);
 		//plotLine(frame, temp, color);
 	}
 	for(int i=0;i<sulawesi.size();++i)
 	{
-		cohen_sutherland(frame, StartX(sulawesi.at(i)), StartY(sulawesi.at(i)), EndX(sulawesi.at(i)), EndY(sulawesi.at(i)), 400, 300, 800, 600, color);
+		cohen_sutherland(frame, StartX(sulawesi.at(i)), StartY(sulawesi.at(i)), EndX(sulawesi.at(i)), EndY(sulawesi.at(i)), 200, 200, 400, 400, color);
 		//plotLine(frame, temp, color);
 	}
 	for(int i=0;i<papua.size();++i)
