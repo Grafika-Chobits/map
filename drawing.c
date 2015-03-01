@@ -12,15 +12,40 @@ void drawSquare (Frame *frm, Coord kiriAtas, Coord kananBawah, RGB color)
 	plotLine(frm, kiriAtas.x, kananBawah.y, kananBawah.x, kananBawah.y, color);
 }
 
-void drawKapal(Frame *frm, Coord loc, RGB color){
+std::vector<Line> drawKapal(Frame *frm, Coord loc, RGB color){
 	plotLine(frm,loc.x-15,loc.y-10,loc.x+15,loc.y-10,color);
 	plotLine(frm,loc.x-15,loc.y+10,loc.x+15,loc.y+10,color);
 	plotLine(frm,loc.x-15,loc.y-10,loc.x-20,loc.y,color);
 	plotLine(frm,loc.x+15,loc.y-10,loc.x+20,loc.y,color); 	
 	plotLine(frm,loc.x-15,loc.y+10,loc.x-20,loc.y,color);
 	plotLine(frm,loc.x+15,loc.y+10,loc.x+20,loc.y,color);
+	std::vector<Line> kapalLine;
+	kapalLine.push_back(line(coord(loc.x-15,loc.y-10),coord(loc.x+15,loc.y-10)));
+	kapalLine.push_back(line(coord(loc.x-15,loc.y+10),coord(loc.x+15,loc.y+10)));
+	kapalLine.push_back(line(coord(loc.x-15,loc.y-10),coord(loc.x-20,loc.y)));
+	kapalLine.push_back(line(coord(loc.x+15,loc.y-10),coord(loc.x+20,loc.y)));
+	kapalLine.push_back(line(coord(loc.x-15,loc.y+10),coord(loc.x-20,loc.y)));
+	kapalLine.push_back(line(coord(loc.x+15,loc.y+10),coord(loc.x+20,loc.y)));
+	return kapalLine;
 	}
-
+	
+std::vector<Line> drawKapalVertikal (Frame *frm, Coord loc, RGB color){
+	plotLine(frm,loc.x-10,loc.y-15,loc.x-10,loc.y+15,color);
+	plotLine(frm,loc.x+10,loc.y-15,loc.x+10,loc.y+15,color);
+	plotLine(frm,loc.x,loc.y-20,loc.x-10,loc.y-15,color);
+	plotLine(frm,loc.x,loc.y-20,loc.x+10,loc.y-15,color); 	
+	plotLine(frm,loc.x,loc.y+20,loc.x-10,loc.y+15,color);
+	plotLine(frm,loc.x,loc.y+20,loc.x+10,loc.y+15,color);
+	std::vector<Line> kapalLine;
+	kapalLine.push_back(line(coord(loc.x-10,loc.y-15),coord(loc.x-10,loc.y+15)));
+	kapalLine.push_back(line(coord(loc.x+10,loc.y-15),coord(loc.x+10,loc.y+15)));
+	kapalLine.push_back(line(coord(loc.x,loc.y-20),coord(loc.x-10,loc.y-15)));
+	kapalLine.push_back(line(coord(loc.x,loc.y-20),coord(loc.x+10,loc.y-15)));
+	kapalLine.push_back(line(coord(loc.x,loc.y+20),coord(loc.x-10,loc.y+15)));
+	kapalLine.push_back(line(coord(loc.x,loc.y+20),coord(loc.x+10,loc.y+15)));
+	return kapalLine;	
+	}
+	
 std::vector<Line> drawPeta(Frame *frame, Coord center, RGB color) {
 	std::vector<Line> sumatera;
 	Coord offset = coord(30, 10);
@@ -458,33 +483,27 @@ std::vector<Line> drawPeta(Frame *frame, Coord center, RGB color) {
 	return petaLines;
 }
 
-void rotateBaling(Frame *frm,Coord loc, RGB col ,int counter ){
-	int x1=loc.x+40; int y1=loc.y+5;
-	int x2=loc.x+40; int y2=loc.y-5;
-	int x3=loc.x-40; int y3=loc.y+5;
-	int x4=loc.x-40; int y4=loc.y-5;
-	
-	int temp;
-	temp=rotasiX(x1,y1,loc,counter*10);
-	y1=rotasiY(x1,y1,loc,counter*10);
-	x1=temp;
-	temp=rotasiX(x2,y2,loc,counter*10);
-	y2=rotasiY(x2,y2,loc,counter*10);
-	x2=temp;
-	temp=rotasiX(x3,y3,loc,counter*10);	
-	y3=rotasiY(x3,y3,loc,counter*10);
-	x3=temp;
-	temp=rotasiX(x4,y4,loc,counter*10);
-	y4=rotasiY(x4,y4,loc,counter*10);
-	x4=temp;
-	drawBaling(frm,loc,x1,x2,x3,x4,y1,y2,y3,y4,col);
-}
-
-void drawBaling(Frame *frm , Coord loc,int x1,int x2,int x3,int x4,int y1,int y2,int y3,int y4 ,RGB color){
+std::vector<Line> drawBaling(Frame *frm , Coord loc,int x1,int x2,int x3,int x4,int y1,int y2,int y3,int y4 ,RGB color){
 	int xOffset = loc.x-x1;
 	int yOffset = loc.y-y1;
 
-	plotCircle(frm,loc.x,loc.y,15,color);
+	std::vector<Line> balingLine;
+	balingLine.push_back(line(coord(x1,y1),coord(x2,y2)));
+	balingLine.push_back(line(coord(x2,y2),coord(x3,y3)));
+	balingLine.push_back(line(coord(x3,y3),coord(x4,y4)));
+	balingLine.push_back(line(coord(x4,y4),coord(x1,y1)));
+	
+	plotCircle(frm,loc.x,loc.y,2,color);
+	plotLine(frm,loc.x-5,loc.y-3,loc.x+15,loc.y-3,color);
+	plotLine(frm,loc.x+15,loc.y-3,loc.x+15,loc.y+3,color);
+	plotLine(frm,loc.x+15,loc.y+3,loc.x-5,loc.y+3,color);
+	plotLine(frm,loc.x-5,loc.y+3,loc.x-5,loc.y-3,color);
+	
+	balingLine.push_back(line(coord(loc.x-5,loc.y-3),coord(loc.x+15,loc.y-3)));
+	balingLine.push_back(line(coord(loc.x+15,loc.y-3),coord(loc.x+15,loc.y+3)));
+	balingLine.push_back(line(coord(loc.x-5,loc.y+3),coord(loc.x-5,loc.y-3)));
+	balingLine.push_back(line(coord(loc.x+15,loc.y+3),coord(loc.x-5,loc.y+3)));
+	
 	std::vector<Coord> balingCoordinates;
 	balingCoordinates.push_back(loc);
 	balingCoordinates.push_back(coord(x1, y1));
@@ -510,4 +529,31 @@ void drawBaling(Frame *frm , Coord loc,int x1,int x2,int x3,int x4,int y1,int y2
 	}
 
 	int balingHeight = 80;
+	return balingLine;
 }
+
+std::vector<Line> rotateBaling(Frame *frm,Coord loc, RGB col ,int counter ){
+	int x1=loc.x+10; int y1=loc.y+2;
+	int x2=loc.x+10; int y2=loc.y-2;
+	int x3=loc.x-10; int y3=loc.y+2;
+	int x4=loc.x-10; int y4=loc.y-2;
+	
+	std::vector<Line> balingLine;
+	int temp;
+	temp=rotasiX(x1,y1,loc,counter*10);
+	y1=rotasiY(x1,y1,loc,counter*10);
+	x1=temp;
+	temp=rotasiX(x2,y2,loc,counter*10);
+	y2=rotasiY(x2,y2,loc,counter*10);
+	x2=temp;
+	temp=rotasiX(x3,y3,loc,counter*10);	
+	y3=rotasiY(x3,y3,loc,counter*10);
+	x3=temp;
+	temp=rotasiX(x4,y4,loc,counter*10);
+	y4=rotasiY(x4,y4,loc,counter*10);
+	x4=temp;
+	balingLine=drawBaling(frm,loc,x1,x2,x3,x4,y1,y2,y3,y4,col);
+	return balingLine;
+}
+
+
