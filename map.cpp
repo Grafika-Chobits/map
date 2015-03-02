@@ -20,7 +20,7 @@
 #include "rotasi.h"
 #include "drawing.h"
 #include "clip.h"
-//#include "keyboard.h"
+#include <pthread.h>
 
 using namespace std;
 
@@ -180,6 +180,62 @@ void viewPort(Frame *frame, Coord origin, int viewportSize, int windowSize, std:
 	}
 }
 
+void drawExplosion(Frame *frame, Coord loc, int mult, RGB color){	
+	plotLine(frame,loc.x+10*mult,loc.y +10*mult,loc.x+20*mult,loc.y+20*mult,color);
+	plotLine(frame,loc.x-10*mult,loc.y -10*mult,loc.x-20*mult,loc.y-20*mult,color);
+	plotLine(frame,loc.x+10*mult,loc.y -10*mult,loc.x+20*mult,loc.y-20*mult,color);
+	plotLine(frame,loc.x-10*mult,loc.y +10*mult,loc.x-20*mult,loc.y+20*mult,color);
+	plotLine(frame,loc.x,loc.y -10*mult,loc.x,loc.y-20*mult,color);
+	plotLine(frame,loc.x-10*mult,loc.y,loc.x-20*mult,loc.y,color);
+	plotLine(frame,loc.x+10*mult,loc.y ,loc.x+20*mult,loc.y,color);
+	plotLine(frame,loc.x,loc.y +10*mult,loc.x,loc.y+20*mult,color);
+}
+
+void animateExplosion(Frame* frame, int explosionMul, Coord loc){
+	int explosionR, explosionG, explosionB;
+	explosionR = explosionG = explosionB = 255-explosionMul*12;	
+	if(explosionR <= 0 || explosionG <= 0 || explosionB <= 0){
+		explosionR = explosionG = explosionB = 0;
+	}
+	drawExplosion(frame, loc, explosionMul, rgb(explosionR, 0, 0));
+}
+
+/* GLOBALVAR DECLARATIONS ----------------------------------------------- */
+ 
+Coord windowLocation = coord(500, 300);
+int windowSize = 100;
+int running = 1;
+int xPlode = 0;
+Coord xPlodeLocation = coord(0,0);
+
+
+/* VIEW CONTROLLER ------------------------------------------------- */
+void *threadFunc(void *arg)
+{
+	FILE *fmouse;
+    char b[3];
+	fmouse = fopen("/dev/input/mice","r");
+    while(1){
+                fread(b,sizeof(char),3,fmouse);
+                if ((b[0]&1)>0) { //leftbutton
+					windowSize += 20;
+				}
+				if ((b[0]&2)>0) { //rightbutton
+					if (windowSize>0) {
+						windowSize -= 20;
+					}
+				}
+				if ((b[0]&4)>0) { //mmb
+					xPlode = 1;
+				}
+				
+				windowLocation = coord(windowLocation.x+b[1],windowLocation.y-b[2]);
+        }
+        fclose(fmouse);
+	return NULL;
+}
+
+
 /* MAIN FUNCTION ------------------------------------------------------- */
 int main() {	
 	/* Preparations ---------------------------------------------------- */
@@ -247,42 +303,21 @@ int main() {
 	int kapalVelocity = 15;
 	int kapalYPosition = 250;
 
-	//cropping
-	int c; //menampung input keyboard
-	Coord windowLocation = coord(500, 300);
-	int windowSize = 100;
+
 	vector<Line> mapLines;
 	vector<Line> heliLines;
 	vector<Line> kapalLines;
 	
 	vector<Line> allLines;
 	vector<Line> croppedLines;
-	while (loop) {
 		
-		//~ //inputKeyboard gagal
-		//~ set_mode(1);
-		//~ c = get_key();
-		//~ if(c == 65)
-		//~ {
-			//~ printf("key %d\n", c);
-			//~ windowLocation.y-=10;
-		//~ }
-		//~ if(c == 66)
-		//~ {
-			//~ printf("key %d\n", c);
-			//~ windowLocation.y+=10;
-		//~ }
-		//~ if(c == 67)
-		//~ {
-			//~ printf("key %d\n", c);
-			//~ windowLocation.x+=10;
-		//~ }
-		//~ if(c == 68)
-		//~ {
-			//~ printf("key %d\n", c);
-			//~ windowLocation.x-=10;
-		//~ }
-			
+	pthread_t pth;
+	pthread_create(&pth,NULL,threadFunc,NULL);
+	
+	//egg
+	int mul = 0;
+	
+	while (loop) {
 		// clean composition frame
 		flushFrame(&cFrame, rgb(33,33,33));
 				
@@ -316,15 +351,37 @@ int main() {
 		
 													//200 = size window
 		viewPort(&canvas, viewportOrigin, viewportSize, windowSize, croppedLines);		
+		
+		if (planeXPosition <= -15) {
+			planeXPosition = canvasWidth+15;
+		}
+		
+		if (xPlode == 1) {
+			mul = 1;
+			xPlode = 0;
+			xPlodeLocation = windowLocation;
+		}
+		
+		animateExplosion(&canvas, mul, xPlodeLocation);
+		
+		if (mul == 21) {
+			mul = 0;
+			xPlode = 0;
+			xPlodeLocation = coord(0,0);
+		}
+		if (mul >= 1) {
+			mul++;
+		}
 
 		//show frame
 		showFrame(&cFrame,&fb);	
 	}
 
 	/* Cleanup --------------------------------------------------------- */
+	int running= 0;
+	pthread_join(pth,NULL);
 	munmap(fb.ptr, sInfo.smem_len);
 	close(fbFile);
 	fclose(fmouse);
-	//resetTermios();
 	return 0;
 }
