@@ -14,295 +14,15 @@
 #include <algorithm>
 #include <iostream>
 #include <stack>
-
-#define min(X,Y) (((X) < (Y)) ? (X) : (Y))
-#define max(X,Y) (((X) > (Y)) ? (X) : (Y))
-#define End(Line) Line.end
-#define EndX(Line) Line.end.x
-#define EndY(Line) Line.end.y
-
-#define PI 3.14159265
-
-#define degreesToRadians(angleDegrees) (angleDegrees * M_PI / 180.0)
-
-/* SETTINGS ------------------------------------------------------------ */
-#define screenXstart 250
-#define screenX 1366
-#define screenY 768
-#define mouseSensitivity 1
+#include "allstruct.h"
+#include "video.h"
+#include "plotting.h"
+#include "rotasi.h"
+#include "drawing.h"
+#include "clip.h"
+#include <pthread.h>
 
 using namespace std;
-
-/* TYPEDEFS ------------------------------------------------------------ */
-
-//RGB color
-typedef struct s_rgb {
-	unsigned char r;
-	unsigned char g;
-	unsigned char b;
-} RGB;
-
-//Frame of RGBs
-typedef struct s_frame {
-	RGB px[screenX][screenY];
-} Frame;
-
-//Coordinate System
-typedef struct s_coord {
-	int x;
-	int y;
-} Coord;
-
-//Line System
-typedef struct s_line {
-	Coord start;
-	Coord end;
-} Line;
-
-//The integrated frame buffer plus info struct.
-typedef struct s_frameBuffer {
-	char* ptr;
-	int smemLen;
-	int lineLen;
-	int bpp;
-} FrameBuffer;
-
-
-/* MATH STUFF ---------------------------------------------------------- */
-
-// construct coord
-Coord coord(int x, int y) {
-	Coord retval;
-	retval.x = x;
-	retval.y = y;
-	return retval;
-}
-
-Line line(Coord start, Coord end) {
-	Line retval;
-	retval.start = start;
-	retval.end = end;
-	return retval;
-}
-
-unsigned char isInBound(Coord position, Coord corner1, Coord corner2) {
-	unsigned char xInBound = 0;
-	unsigned char yInBound = 0;
-	if (corner1.x < corner2.x) {
-		xInBound = (position.x>corner1.x) && (position.x<corner2.x);
-	} else if (corner1.x > corner2.x) {
-		xInBound = (position.x>corner2.x) && (position.x<corner1.x);
-	} else {
-		return 0;
-	}
-	if (corner1.y < corner2.y) {
-		yInBound = (position.y>corner1.y) && (position.y<corner2.y);
-	} else if (corner1.y > corner2.y) {
-		yInBound = (position.y>corner2.y) && (position.y<corner1.y);
-	} else {
-		return 0;
-	}
-	return xInBound&&yInBound;
-}
-
-/* MOUSE OPERATIONS ---------------------------------------------------- */
-
-// get mouse coord, with integrated screen-space bounding
-Coord getCursorCoord(Coord* mc) {
-	Coord xy;
-	if (mc->x < 0) {
-		mc->x = 0;
-		xy.x = 0;
-	} else if (mc->x >= screenX*mouseSensitivity) {
-		mc->x = screenX*mouseSensitivity-1;
-		xy.x = screenX-1;
-	} else {
-		xy.x = (int) mc->x / mouseSensitivity;
-	}
-	if (mc->y < 0) {
-		mc->y = 0;
-		xy.y = 0;
-	} else if (mc->y >= screenY*mouseSensitivity) {
-		mc->y = screenY*mouseSensitivity-1;
-		xy.y = screenY-1;
-	} else {
-		xy.y = (int) mc->y / mouseSensitivity;
-	}
-	return xy;
-}
-
-/* VIDEO OPERATIONS ---------------------------------------------------- */
-
-// construct RGB
-RGB rgb(unsigned char r, unsigned char g, unsigned char b) {
-	RGB retval;
-	retval.r = r;
-	retval.g = g;
-	retval.b = b;
-	return retval;
-}
-
-// insert pixel to composition frame, with bounds filter
-void insertPixel(Frame* frm, Coord loc, RGB col) {
-	// do bounding check:
-	if (!(loc.x >= screenX || loc.x < 0 || loc.y >= screenY || loc.y < 0)) {
-		frm->px[loc.x][loc.y].r = col.r;
-		frm->px[loc.x][loc.y].g = col.g;
-		frm->px[loc.x][loc.y].b = col.b;
-	}
-}
-
-// delete contents of composition frame
-void flushFrame (Frame* frm, RGB color) {
-	int x;
-	int y;
-	for (y=0; y<screenY; y++) {
-		for (x=0; x<screenX; x++) {
-			frm->px[x][y] = color;
-		}
-	}
-}
-
-// copy composition Frame to FrameBuffer
-void showFrame (Frame* frm, FrameBuffer* fb) {
-	int x;
-	int y;
-	for (y=0; y<screenY; y++) {
-		for (x=0; x<screenX; x++) {
-			int location = x * (fb->bpp/8) + y * fb->lineLen;
-			*(fb->ptr + location    ) = frm->px[x][y].b; // blue
-			*(fb->ptr + location + 1) = frm->px[x][y].g; // green
-			*(fb->ptr + location + 2) = frm->px[x][y].r; // red
-			*(fb->ptr + location + 3) = 255; // transparency
-		}
-	}
-}
-
-void showCanvas(Frame* frm, Frame* cnvs, int canvasWidth, int canvasHeight, Coord loc, RGB borderColor, int isBorder) {
-	int x, y;
-	for (y=0; y<canvasHeight;y++) {
-		for (x=0; x<canvasWidth; x++) {
-			insertPixel(frm, coord(loc.x - canvasWidth/2 + x, loc.y - canvasHeight/2 + y), cnvs->px[x][y]);
-		}
-	}
-	
-	//show border
-	if(isBorder){
-		for (y=0; y<canvasHeight; y++) {
-			insertPixel(frm, coord(loc.x - canvasWidth/2 - 1, loc.y - canvasHeight/2 + y), borderColor);
-			insertPixel(frm, coord(loc.x  - canvasWidth/2 + canvasWidth, loc.y - canvasHeight/2 + y), borderColor);
-		}
-		for (x=0; x<canvasWidth; x++) {
-			insertPixel(frm, coord(loc.x - canvasWidth/2 + x, loc.y - canvasHeight/2 - 1), borderColor);
-			insertPixel(frm, coord(loc.x - canvasWidth/2 + x, loc.y - canvasHeight/2 + canvasHeight), borderColor);
-		}
-	}
-}
-
-int rotasiX(int xAwal,int yAwal,Coord loc,int sudut){
-	return ((xAwal-loc.x)*cos(sudut)-(yAwal-loc.y)*sin(sudut)+loc.x);
-}
-
-int rotasiY(int xAwal,int yAwal,Coord loc,int sudut){
-	return ((xAwal-loc.x)*sin(sudut)+(yAwal-loc.y)*cos(sudut)+loc.y);
-}
-
-void plotCircle(Frame* frm,int xm, int ym, int r,RGB col)
-{
-   int x = -r, y = 0, err = 2-2*r; /* II. Quadrant */ 
-   do {
-      insertPixel(frm,coord(xm-x, ym+y),col); /*   I. Quadrant */
-      insertPixel(frm,coord(xm-y, ym-x),col); /*  II. Quadrant */
-      insertPixel(frm,coord(xm+x, ym-y),col); /* III. Quadrant */
-      insertPixel(frm,coord(xm+y, ym+x),col); /*  IV. Quadrant */
-      r = err;
-      if (r <= y) err += ++y*2+1;           /* e_xy+e_y < 0 */
-      if (r > x || err > y) err += ++x*2+1; /* e_xy+e_x > 0 or no 2nd y-step */
-   } while (x < 0);
-}
-
-void plotHalfCircle(Frame *frm,int xm, int ym, int r,RGB col)
-{
-   int x = -r, y = 0, err = 2-2*r; /* II. Quadrant */ 
-   do {
-      insertPixel(frm,coord(xm+x, ym-y),col); /* III. Quadrant */
-      insertPixel(frm,coord(xm+y, ym+x),col); /*  IV. Quadrant */
-      r = err;
-      if (r <= y) err += ++y*2+1;           /* e_xy+e_y < 0 */
-      if (r > x || err > y) err += ++x*2+1; /* e_xy+e_x > 0 or no 2nd y-step */
-   } while (x < 0);
-}
-
-/* Fungsi membuat garis */
-void plotLine(Frame* frm, int x0, int y0, int x1, int y1, RGB lineColor)
-{
-	int dx =  abs(x1-x0), sx = x0<x1 ? 1 : -1;
-	int dy = -abs(y1-y0), sy = y0<y1 ? 1 : -1; 
-	int err = dx+dy, e2; /* error value e_xy */
-	int loop = 1;
-	while(loop){  /* loop */
-		insertPixel(frm, coord(x0, y0), rgb(lineColor.r, lineColor.g, lineColor.b));
-		if (x0==x1 && y0==y1) loop = 0;
-		e2 = 2*err;
-		if (e2 >= dy) { err += dy; x0 += sx; } /* e_xy+e_x > 0 */
-		if (e2 <= dx) { err += dx; y0 += sy; } /* e_xy+e_y < 0 */
-	}
-}
-
-void plotLine(Frame *frm, Line line, RGB lineColor) {
-	int x0 = line.start.x;
-	int y0 = line.start.y;
-	int x1 = line.end.x;
-	int y1 = line.end.y;
-
-
-	int dx =  abs(x1-x0), sx = x0<x1 ? 1 : -1;
-	int dy = -abs(y1-y0), sy = y0<y1 ? 1 : -1; 
-	int err = dx+dy, e2; /* error value e_xy */
-	int loop = 1;
-	while(loop){  /* loop */
-		insertPixel(frm, coord(x0, y0), rgb(lineColor.r, lineColor.g, lineColor.b));
-		if (x0==x1 && y0==y1) loop = 0;
-		e2 = 2*err;
-		if (e2 >= dy) { err += dy; x0 += sx; } /* e_xy+e_x > 0 */
-		if (e2 <= dx) { err += dx; y0 += sy; } /* e_xy+e_y < 0 */
-	}
-}
-
-void plotLineWidth(Frame* frm, int x0, int y0, int x1, int y1, float wd, RGB lineColor) { 
-	int dx = abs(x1-x0), sx = x0 < x1 ? 1 : -1; 
-	int dy = abs(y1-y0), sy = y0 < y1 ? 1 : -1; 
-	int err = dx-dy, e2, x2, y2;                          /* error value e_xy */
-
-	float ed = dx+dy == 0 ? 1 : sqrt((float)dx*dx+(float)dy*dy);
-
-	for (wd = (wd+1)/2; ; ) {                                   /* pixel loop */
-		insertPixel(frm, coord(x0, y0), rgb(max(0,lineColor.r*(abs(err-dx+dy)/ed-wd+1)), 
-											max(0,lineColor.g*(abs(err-dx+dy)/ed-wd+1)), 
-											max(0,lineColor.b*(abs(err-dx+dy)/ed-wd+1))));
-
-		e2 = err; x2 = x0;
-		if (2*e2 >= -dx) {                                           /* x step */
-			for (e2 += dy, y2 = y0; e2 < ed*wd && (y1 != y2 || dx > dy); e2 += dx)
-				y2 += sy;
-				insertPixel(frm, coord(x0, y2), rgb(max(0,lineColor.r*(abs(e2)/ed-wd+1)), 
-															max(0,lineColor.g*(abs(e2)/ed-wd+1)), 
-															max(0,lineColor.b*(abs(e2)/ed-wd+1)))); 
-			if (x0 == x1) break;
-			e2 = err; err -= dy; x0 += sx; 
-		} 
-		
-		if (2*e2 <= dy) {                                            /* y step */
-			for (e2 = dx-e2; e2 < ed*wd && (x1 != x2 || dx < dy); e2 += dy)
-				x2 += sx;
-				insertPixel(frm, coord(x2, y0), rgb(max(0,lineColor.r*(abs(e2)/ed-wd+1)), 
-															max(0,lineColor.g*(abs(e2)/ed-wd+1)), 
-															max(0,lineColor.b*(abs(e2)/ed-wd+1)))); 
-			if (y0 == y1) break;
-			err += dx; y0 += sy; 
-		}
-	}
-}
 
 /* FUNCTIONS FOR SCANLINE ALGORITHM ---------------------------------------------------- */
 
@@ -431,84 +151,6 @@ void fillShape(Frame *frame, int xOffset, int yOffset, int startY, int shapeHeig
 	}
 }
 
-void drawBaling(Frame *frm , Coord loc,int x1,int x2,int x3,int x4,int y1,int y2,int y3,int y4 ,RGB color){
-	int xOffset = loc.x-x1;
-	int yOffset = loc.y-y1;
-
-	plotCircle(frm,loc.x,loc.y,2,color);
-	plotLine(frm,loc.x-5,loc.y-3,loc.x+15,loc.y-3,color);
-	plotLine(frm,loc.x+15,loc.y-3,loc.x+15,loc.y+3,color);
-	plotLine(frm,loc.x+15,loc.y+3,loc.x-5,loc.y+3,color);
-	plotLine(frm,loc.x-5,loc.y+3,loc.x-5,loc.y-3,color);
-
-	std::vector<Coord> balingCoordinates;
-	balingCoordinates.push_back(loc);
-	balingCoordinates.push_back(coord(x1, y1));
-	balingCoordinates.push_back(coord(x2, y2));
-	balingCoordinates.push_back(coord(x3,y3));
-	balingCoordinates.push_back(coord(x4,y4));
-
-	// Gambar baling-baling
-	for(int i = 0; i < balingCoordinates.size(); i++){
-		int x0, y0, x1, y1;
-		if(i < balingCoordinates.size() - 1){
-			x0 = balingCoordinates.at(i).x;
-			y0 = balingCoordinates.at(i).y;
-			x1 = balingCoordinates.at(i + 1).x;
-			y1 = balingCoordinates.at(i + 1).y;
-		}else{
-			x0 = balingCoordinates.at(balingCoordinates.size() - 1).x;
-			y0 = balingCoordinates.at(balingCoordinates.size() - 1).y;
-			x1 = balingCoordinates.at(0).x;
-			y1 = balingCoordinates.at(0).y;
-		}
-		plotLine(frm, x0, y0, x1, y1, color);
-	}
-
-	int balingHeight = 80;
-}
-
-void rotateBaling(Frame *frm,Coord loc, RGB col ,int counter ){
-	int x1=loc.x+10; int y1=loc.y+2;
-	int x2=loc.x+10; int y2=loc.y-2;
-	int x3=loc.x-10; int y3=loc.y+2;
-	int x4=loc.x-10; int y4=loc.y-2;
-	
-	int temp;
-	temp=rotasiX(x1,y1,loc,counter*10);
-	y1=rotasiY(x1,y1,loc,counter*10);
-	x1=temp;
-	temp=rotasiX(x2,y2,loc,counter*10);
-	y2=rotasiY(x2,y2,loc,counter*10);
-	x2=temp;
-	temp=rotasiX(x3,y3,loc,counter*10);	
-	y3=rotasiY(x3,y3,loc,counter*10);
-	x3=temp;
-	temp=rotasiX(x4,y4,loc,counter*10);
-	y4=rotasiY(x4,y4,loc,counter*10);
-	x4=temp;
-	drawBaling(frm,loc,x1,x2,x3,x4,y1,y2,y3,y4,col);
-}
-
-void drawKapal(Frame *frm, Coord loc, RGB color){
-	plotLine(frm,loc.x-15,loc.y-10,loc.x+15,loc.y-10,color);
-	plotLine(frm,loc.x-15,loc.y+10,loc.x+15,loc.y+10,color);
-	plotLine(frm,loc.x-15,loc.y-10,loc.x-20,loc.y,color);
-	plotLine(frm,loc.x+15,loc.y-10,loc.x+20,loc.y,color); 	
-	plotLine(frm,loc.x-15,loc.y+10,loc.x-20,loc.y,color);
-	plotLine(frm,loc.x+15,loc.y+10,loc.x+20,loc.y,color);
-	}
-	
-void drawKapalVertikal (Frame *frm, Coord loc, RGB color){
-	plotLine(frm,loc.x-10,loc.y-15,loc.x-10,loc.y+15,color);
-	plotLine(frm,loc.x+10,loc.y-15,loc.x+10,loc.y+15,color);
-	plotLine(frm,loc.x,loc.y-20,loc.x-10,loc.y-15,color);
-	plotLine(frm,loc.x,loc.y-20,loc.x+10,loc.y-15,color); 	
-	plotLine(frm,loc.x,loc.y+20,loc.x-10,loc.y+15,color);
-	plotLine(frm,loc.x,loc.y+20,loc.x+10,loc.y+15,color);	
-	}
-
-
 Coord lengthEndPoint(Coord startingPoint, int angle, int length){
 	Coord endPoint;
 	
@@ -518,6 +160,7 @@ Coord lengthEndPoint(Coord startingPoint, int angle, int length){
 	return endPoint;
 }
 
+//origin, pojok kiri atas viewPort
 void viewPort(Frame *frame, Coord origin, int viewportSize, int windowSize, std::vector<Line> originalLines){
 	// viewport frame
 	plotLine(frame, origin.x, origin.y, origin.x + viewportSize, origin.y, rgb(255,255,255));
@@ -530,441 +173,68 @@ void viewPort(Frame *frame, Coord origin, int viewportSize, int windowSize, std:
 	for(int i = 0; i < originalLines.size(); i++){
 		int startX = int((double)originalLines.at(i).start.x * (double)viewportSize / (double)windowSize) + origin.x;
 		int startY = int((double)originalLines.at(i).start.y * (double)viewportSize / (double)windowSize) + origin.y;
-		int endX = int((double)originalLines.at(i).end.x * (double)viewportSize / (double)windowSize + origin.x);
-		int endY = int((double)originalLines.at(i).end.y * (double)viewportSize / (double)windowSize + origin.y);
+		int endX = int((double)originalLines.at(i).end.x * (double)viewportSize / (double)windowSize) + origin.x;
+		int endY = int((double)originalLines.at(i).end.y * (double)viewportSize / (double)windowSize) + origin.y;
 		transformedLines.push_back(line(coord(startX, startY), coord(endX, endY)));
 		plotLine(frame, transformedLines.at(i), rgb(50, 150, 0));
 	}
-	
-	
 }
 
-void window(Frame *frame, Coord origin, int size, std::vector<Line> originalLines){
-	// window frame
-	plotLine(frame, origin.x, origin.y, origin.x + size, origin.y, rgb(255,255,255));
-	plotLine(frame, origin.x, origin.y, origin.x, origin.y + size, rgb(255,255,255));
-	plotLine(frame, origin.x, origin.y + size, origin.x + size, origin.y + size, rgb(255,255,255));
-	plotLine(frame, origin.x + size, origin.y, origin.x + size, origin.y + size, rgb(255,255,255));
-	
-	// draw lines
-	for(int i = 0; i < originalLines.size(); i++){
-		int startX = originalLines.at(i).start.x + origin.x;
-		int startY = originalLines.at(i).start.y + origin.y;
-		int endX = originalLines.at(i).end.x + origin.x;
-		int endY = originalLines.at(i).end.y + origin.y;
-		plotLine(frame, startX, startY, endX, endY, rgb(50,150,0));
+void drawExplosion(Frame *frame, Coord loc, int mult, RGB color){	
+	plotLine(frame,loc.x+10*mult,loc.y +10*mult,loc.x+20*mult,loc.y+20*mult,color);
+	plotLine(frame,loc.x-10*mult,loc.y -10*mult,loc.x-20*mult,loc.y-20*mult,color);
+	plotLine(frame,loc.x+10*mult,loc.y -10*mult,loc.x+20*mult,loc.y-20*mult,color);
+	plotLine(frame,loc.x-10*mult,loc.y +10*mult,loc.x-20*mult,loc.y+20*mult,color);
+	plotLine(frame,loc.x,loc.y -10*mult,loc.x,loc.y-20*mult,color);
+	plotLine(frame,loc.x-10*mult,loc.y,loc.x-20*mult,loc.y,color);
+	plotLine(frame,loc.x+10*mult,loc.y ,loc.x+20*mult,loc.y,color);
+	plotLine(frame,loc.x,loc.y +10*mult,loc.x,loc.y+20*mult,color);
+}
+
+void animateExplosion(Frame* frame, int explosionMul, Coord loc){
+	int explosionR, explosionG, explosionB;
+	explosionR = explosionG = explosionB = 255-explosionMul*12;	
+	if(explosionR <= 0 || explosionG <= 0 || explosionB <= 0){
+		explosionR = explosionG = explosionB = 0;
 	}
+	drawExplosion(frame, loc, explosionMul, rgb(explosionR, 0, 0));
 }
 
-void drawPeta(Frame *frame, Coord center, RGB color) {
-	std::vector<Line> sumatera;
-	Coord offset = coord(30, 10);
-	sumatera.push_back(line(offset, coord(offset.x+20, offset.y+20)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-5, EndY(sumatera.back())+10)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())+15, EndY(sumatera.back())+15)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())+10, EndY(sumatera.back())+20)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())+5, EndY(sumatera.back())+20)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())+5, EndY(sumatera.back())+15)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-5, EndY(sumatera.back())+10)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())+15, EndY(sumatera.back())+15)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())+5, EndY(sumatera.back())+30)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())+45, EndY(sumatera.back())+20)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())+35, EndY(sumatera.back())+30)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back()), EndY(sumatera.back())+5)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())+3, EndY(sumatera.back())+8)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())+5, EndY(sumatera.back())+5)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())+10, EndY(sumatera.back())+15)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())+10, EndY(sumatera.back())+5)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())+10, EndY(sumatera.back())+15)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-10, EndY(sumatera.back())+15)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-5, EndY(sumatera.back())+20)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-3, EndY(sumatera.back())+15)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-5, EndY(sumatera.back())+5)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-5, EndY(sumatera.back())+15)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-20, EndY(sumatera.back())+15)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-10, EndY(sumatera.back())-5)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-15, EndY(sumatera.back())-5)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-10, EndY(sumatera.back())-5)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-10, EndY(sumatera.back())-10)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-20, EndY(sumatera.back())-5)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-15, EndY(sumatera.back())-8)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-10, EndY(sumatera.back())-10)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-5, EndY(sumatera.back())-15)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())+5, EndY(sumatera.back())-10)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())+3, EndY(sumatera.back())-20)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-10, EndY(sumatera.back())-15)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-5, EndY(sumatera.back())-25)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-5, EndY(sumatera.back())-15)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back()), EndY(sumatera.back())-10)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-5, EndY(sumatera.back())-15)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-10, EndY(sumatera.back())-10)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-5, EndY(sumatera.back())-15)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back()), EndY(sumatera.back())-15)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-15, EndY(sumatera.back())-20)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-15, EndY(sumatera.back())-10)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-5, EndY(sumatera.back())-10)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())+10, EndY(sumatera.back())-15)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back()), EndY(sumatera.back())-10)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())-5, EndY(sumatera.back())-5)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())+8, EndY(sumatera.back())-20)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back()), EndY(sumatera.back())-10)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back())+3, EndY(sumatera.back())-7)));
-	sumatera.push_back(line(End(sumatera.back()), coord(EndX(sumatera.back()), EndY(sumatera.back())-10)));
-	sumatera.push_back(line(End(sumatera.back()), offset));
-
-	std::vector<Line> jawa;
-	Coord offsetJawa = coord(offset.x+180, offset.y+350);
-	jawa.push_back(line(offsetJawa, coord(offsetJawa.x+15, offsetJawa.y-10)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+15, EndY(jawa.back())+10)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+25, EndY(jawa.back())+5)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+10, EndY(jawa.back()))));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+15, EndY(jawa.back())+10)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+20, EndY(jawa.back())+8)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+8, EndY(jawa.back())-2)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+15, EndY(jawa.back())+7)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+15, EndY(jawa.back()))));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+10, EndY(jawa.back())-3)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+15, EndY(jawa.back())-5)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+10, EndY(jawa.back())-1)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+5, EndY(jawa.back())+3)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+8, EndY(jawa.back())+6)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+10, EndY(jawa.back())+3)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+10, EndY(jawa.back())+8)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+20, EndY(jawa.back())+2)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+10, EndY(jawa.back())+3)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+30, EndY(jawa.back())-3)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+10, EndY(jawa.back())-5)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+5, EndY(jawa.back())-7)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+5, EndY(jawa.back())-4)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+3, EndY(jawa.back()))));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+10, EndY(jawa.back())+2)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+15, EndY(jawa.back())+4)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+10, EndY(jawa.back())+10)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+3, EndY(jawa.back())+15)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+2, EndY(jawa.back())+10)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-5, EndY(jawa.back())+15)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+3, EndY(jawa.back())+4)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+6, EndY(jawa.back())+5)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+5, EndY(jawa.back())+2)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+4, EndY(jawa.back())+4)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+5, EndY(jawa.back())+4)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-5, EndY(jawa.back())+2)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-25, EndY(jawa.back())+4)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-15, EndY(jawa.back())-3)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-10, EndY(jawa.back())-6)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-15, EndY(jawa.back())+5)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-25, EndY(jawa.back())-10)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-45, EndY(jawa.back())+2)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-35, EndY(jawa.back())+2)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-40, EndY(jawa.back())-3)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-20, EndY(jawa.back())-5)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-15, EndY(jawa.back())-3)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-25, EndY(jawa.back())+2)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-20, EndY(jawa.back())-10)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-15, EndY(jawa.back())-15)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-10, EndY(jawa.back())+3)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-8, EndY(jawa.back())-5)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-25, EndY(jawa.back())-15)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-20, EndY(jawa.back())-10)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-5, EndY(jawa.back()))));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-15, EndY(jawa.back())-8)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())-3, EndY(jawa.back())-5)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+5, EndY(jawa.back())-4)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back())+5, EndY(jawa.back())-3)));
-	jawa.push_back(line(End(jawa.back()), coord(EndX(jawa.back()), EndY(jawa.back())-2)));
-	jawa.push_back(line(End(jawa.back()), offsetJawa));
-
-	std::vector<Line> kalimantan;
-	Coord offsetKalimantan = coord(offset.x+230, offset.y+150);
-	kalimantan.push_back(line(offsetKalimantan, coord(offsetKalimantan.x+5, offsetKalimantan.y-5)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+10, EndY(kalimantan.back())+8)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+10, EndY(kalimantan.back())+5)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+15, EndY(kalimantan.back())+8)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+10, EndY(kalimantan.back())-1)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+5, EndY(kalimantan.back())+3)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+10, EndY(kalimantan.back())-5)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+15, EndY(kalimantan.back())-3)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+15, EndY(kalimantan.back())-2)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+10, EndY(kalimantan.back())-6)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+15, EndY(kalimantan.back())-10)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+15, EndY(kalimantan.back())-3)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+10, EndY(kalimantan.back())+1)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+10, EndY(kalimantan.back())+2)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+15, EndY(kalimantan.back())-10)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+8, EndY(kalimantan.back())-15)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+10, EndY(kalimantan.back())-15)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+15, EndY(kalimantan.back())-20)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+5, EndY(kalimantan.back())-15)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+5, EndY(kalimantan.back())-10)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+6, EndY(kalimantan.back())-3)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+6, EndY(kalimantan.back())-5)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+4, EndY(kalimantan.back())-5)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+4, EndY(kalimantan.back())+3)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+3, EndY(kalimantan.back())+8)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+5, EndY(kalimantan.back())+35)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-4, EndY(kalimantan.back())+20)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-2, EndY(kalimantan.back())+20)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-8, EndY(kalimantan.back())+10)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-1, EndY(kalimantan.back())+5)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+3, EndY(kalimantan.back())+5)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-1, EndY(kalimantan.back())+5)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-5, EndY(kalimantan.back())+15)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-10, EndY(kalimantan.back())+8)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-+2, EndY(kalimantan.back())+5)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-5, EndY(kalimantan.back())+15)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-10, EndY(kalimantan.back())+25)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+3, EndY(kalimantan.back())+25)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-1, EndY(kalimantan.back())+15)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-3, EndY(kalimantan.back())+15)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-20, EndY(kalimantan.back())+15)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-15, EndY(kalimantan.back())+10)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-25, EndY(kalimantan.back())+3)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-10, EndY(kalimantan.back())-2)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-7, EndY(kalimantan.back())-5)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-5, EndY(kalimantan.back())+1)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-5, EndY(kalimantan.back())+2)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-25, EndY(kalimantan.back())-10)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-30, EndY(kalimantan.back())-25)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-15, EndY(kalimantan.back())-10)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-5, EndY(kalimantan.back())-10)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-5, EndY(kalimantan.back())-5)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-7, EndY(kalimantan.back())-10)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-10, EndY(kalimantan.back())-15)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+2, EndY(kalimantan.back())-10)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-3, EndY(kalimantan.back())-25)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-10, EndY(kalimantan.back())-15)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())-10, EndY(kalimantan.back())-10)));
-	kalimantan.push_back(line(End(kalimantan.back()), coord(EndX(kalimantan.back())+7, EndY(kalimantan.back())-7)));
-	kalimantan.push_back(line(End(kalimantan.back()), offsetKalimantan));
+/* GLOBALVAR DECLARATIONS ----------------------------------------------- */
+ 
+Coord windowLocation = coord(500, 300);
+int windowSize = 100;
+int running = 1;
+int xPlode = 0;
+Coord xPlodeLocation = coord(0,0);
 
 
-	std::vector<Line> sulawesi;
-	Coord offsetSulawesi = coord(offset.x+520, offset.y+170);
-	sulawesi.push_back(line(offsetSulawesi, coord(offsetSulawesi.x+2, offsetSulawesi.y-15)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+4, EndY(sulawesi.back())-10)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+5, EndY(sulawesi.back())-4)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+8, EndY(sulawesi.back())-3)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+10, EndY(sulawesi.back())-3)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+15, EndY(sulawesi.back())+2)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+5, EndY(sulawesi.back())-5)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+5, EndY(sulawesi.back())-1)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+5, EndY(sulawesi.back())-2)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+5, EndY(sulawesi.back())+3)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+15, EndY(sulawesi.back())-3)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+20, EndY(sulawesi.back())+5)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+30, EndY(sulawesi.back())-1)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+25, EndY(sulawesi.back())-3)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+10, EndY(sulawesi.back())-5)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+5, EndY(sulawesi.back())-6)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+4, EndY(sulawesi.back())-5)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+7, EndY(sulawesi.back())-8)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+7, EndY(sulawesi.back())-3)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+5, EndY(sulawesi.back())+2)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+7, EndY(sulawesi.back())+5)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-3, EndY(sulawesi.back())+4)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-3, EndY(sulawesi.back())+2)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-5, EndY(sulawesi.back())+5)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-9, EndY(sulawesi.back())+10)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-9, EndY(sulawesi.back())+15)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-10, EndY(sulawesi.back())+4)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-15, EndY(sulawesi.back())+3)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-15, EndY(sulawesi.back())+2)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-10, EndY(sulawesi.back())-2)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-10, EndY(sulawesi.back())-1)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-15, EndY(sulawesi.back())+1)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-10, EndY(sulawesi.back())+2)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-25, EndY(sulawesi.back())-1)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-10, EndY(sulawesi.back())-2)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-8, EndY(sulawesi.back())+2)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-15, EndY(sulawesi.back())+3)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-5, EndY(sulawesi.back())+2)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-6, EndY(sulawesi.back())+2)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-2, EndY(sulawesi.back())+10)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+1, EndY(sulawesi.back())+5)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-2, EndY(sulawesi.back())+10)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+10, EndY(sulawesi.back())+10)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+8, EndY(sulawesi.back())+3)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+15, EndY(sulawesi.back())+3)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+10, EndY(sulawesi.back())-2)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+8, EndY(sulawesi.back())-2)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+9, EndY(sulawesi.back())+1)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+5, EndY(sulawesi.back())-2)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+8, EndY(sulawesi.back())-1)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+7, EndY(sulawesi.back())+1)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+15, EndY(sulawesi.back())-3)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+5, EndY(sulawesi.back())+1)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+7, EndY(sulawesi.back())-3)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+10, EndY(sulawesi.back())+2)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+3, EndY(sulawesi.back())+4)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+6, EndY(sulawesi.back())+5)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+3, EndY(sulawesi.back())+2)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-4, EndY(sulawesi.back())+2)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-4, EndY(sulawesi.back())+3)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-6, EndY(sulawesi.back())+3)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-7, EndY(sulawesi.back())+4)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-4, EndY(sulawesi.back())-3)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-3, EndY(sulawesi.back())+1)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-3, EndY(sulawesi.back())-1)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-4, EndY(sulawesi.back())+2)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-11, EndY(sulawesi.back())+2)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-10, EndY(sulawesi.back())-1)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-6, EndY(sulawesi.back())+2)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-4, EndY(sulawesi.back())+5)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-5, EndY(sulawesi.back())+8)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-4, EndY(sulawesi.back())+3)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-7, EndY(sulawesi.back())+3)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-3, EndY(sulawesi.back())+4)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+3, EndY(sulawesi.back())+5)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+5, EndY(sulawesi.back())+3)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+18, EndY(sulawesi.back())+10)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+8, EndY(sulawesi.back())+10)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+15, EndY(sulawesi.back())+20)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-2, EndY(sulawesi.back())+7)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+1, EndY(sulawesi.back())+5)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+8, EndY(sulawesi.back())+10)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+20, EndY(sulawesi.back())+10)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+1, EndY(sulawesi.back())+5)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-5, EndY(sulawesi.back())+5)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-3, EndY(sulawesi.back())+5)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-20, EndY(sulawesi.back())-10)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-25, EndY(sulawesi.back())-10)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-10, EndY(sulawesi.back())-5)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-5, EndY(sulawesi.back())-5)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-10, EndY(sulawesi.back())-5)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-6, EndY(sulawesi.back())-8)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-5, EndY(sulawesi.back())-10)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-3, EndY(sulawesi.back())-10)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-7, EndY(sulawesi.back())-2)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-2, EndY(sulawesi.back())+15)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-3, EndY(sulawesi.back())+20)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+3, EndY(sulawesi.back())+10)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+4, EndY(sulawesi.back())+15)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-2, EndY(sulawesi.back())+20)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-5, EndY(sulawesi.back())+4)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-3, EndY(sulawesi.back())+1)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-5, EndY(sulawesi.back())-7)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-3, EndY(sulawesi.back())-10)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-10, EndY(sulawesi.back())-15)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+2, EndY(sulawesi.back())-3)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-10, EndY(sulawesi.back())-20)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-5, EndY(sulawesi.back())-15)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-8, EndY(sulawesi.back())+1)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-3, EndY(sulawesi.back())-8)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+1, EndY(sulawesi.back())-10)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+2, EndY(sulawesi.back())-10)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-1, EndY(sulawesi.back())-15)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-2, EndY(sulawesi.back())-10)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+4, EndY(sulawesi.back())-15)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())-5, EndY(sulawesi.back())-10)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+3, EndY(sulawesi.back())-10)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+2, EndY(sulawesi.back())-7)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+5, EndY(sulawesi.back())-8)));
-	sulawesi.push_back(line(End(sulawesi.back()), coord(EndX(sulawesi.back())+2, EndY(sulawesi.back())-10)));
-	sulawesi.push_back(line(End(sulawesi.back()), offsetSulawesi));
-
-	std::vector<Line> papua;
-	Coord offsetPapua = coord(offset.x+900, offset.y+170);
-	papua.push_back(line(offsetPapua, coord(offsetPapua.x+5, offsetPapua.y-5)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+10, EndY(papua.back())-5)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+15, EndY(papua.back())+2)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+10, EndY(papua.back())-6)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+5, EndY(papua.back())+2)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+15, EndY(papua.back())+4)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+8, EndY(papua.back())+4)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+15, EndY(papua.back())+7)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+3, EndY(papua.back())+5)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+3, EndY(papua.back())+7)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+1, EndY(papua.back())+7)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-3, EndY(papua.back())+7)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+1, EndY(papua.back())+5)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+5, EndY(papua.back())+11)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+10, EndY(papua.back())+10)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+5, EndY(papua.back())+7)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+7, EndY(papua.back())+4)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+4, EndY(papua.back())+8)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+8, EndY(papua.back())+4)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+10, EndY(papua.back())+2)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+7, EndY(papua.back())-5)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+10, EndY(papua.back())-10)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+8, EndY(papua.back())-10)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+6, EndY(papua.back())-11)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+7, EndY(papua.back())-14)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+7, EndY(papua.back())-14)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+10, EndY(papua.back())-3)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+15, EndY(papua.back())-2)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+10, EndY(papua.back())+4)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+10, EndY(papua.back())+6)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+15, EndY(papua.back())+10)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+10, EndY(papua.back())+3)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+15, EndY(papua.back())+2)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+8, EndY(papua.back())-1)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+10, EndY(papua.back())+4)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+15, EndY(papua.back())-2)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+15, EndY(papua.back())+3)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back()), EndY(papua.back())+150)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-15, EndY(papua.back())-3)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-5, EndY(papua.back())-5)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-10, EndY(papua.back())-3)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-10, EndY(papua.back())+1)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-15, EndY(papua.back())-5)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-15, EndY(papua.back())-10)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-15, EndY(papua.back())-3)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-10, EndY(papua.back())+8)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-4, EndY(papua.back())+5)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-7, EndY(papua.back())+2)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-8, EndY(papua.back())+3)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+2, EndY(papua.back())-10)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-12, EndY(papua.back())-10)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+2, EndY(papua.back())-10)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-10, EndY(papua.back())-6)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-15, EndY(papua.back())-7)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-10, EndY(papua.back())-9)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-12, EndY(papua.back())+1)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-10, EndY(papua.back())-6)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-12, EndY(papua.back())+1)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-15, EndY(papua.back())-8)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-15, EndY(papua.back())-13)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-18, EndY(papua.back())-8)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-20, EndY(papua.back())-5)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-10, EndY(papua.back())-7)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-10, EndY(papua.back())+4)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-10, EndY(papua.back())+4)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-5, EndY(papua.back())+5)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-10, EndY(papua.back())+3)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-10, EndY(papua.back())-1)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-3, EndY(papua.back())-8)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+5, EndY(papua.back())-5)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+9, EndY(papua.back())-10)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+15, EndY(papua.back())-8)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+10, EndY(papua.back())-8)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+4, EndY(papua.back())-6)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+6, EndY(papua.back())-3)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-5, EndY(papua.back())-2)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-4, EndY(papua.back())-8)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-6, EndY(papua.back())-3)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-7, EndY(papua.back())+1)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-8, EndY(papua.back())-2)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-9, EndY(papua.back())-4)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-8, EndY(papua.back())-10)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-10, EndY(papua.back())-6)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-15, EndY(papua.back())-4)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-8, EndY(papua.back())-3)));
-	papua.push_back(line(End(papua.back()), coord(EndX(papua.back())+1, EndY(papua.back())-3)));
-	papua.push_back(line(End(papua.back()), offsetPapua));
-	//papua.push_back(line(End(papua.back()), coord(EndX(papua.back())-10, EndY(papua.back())-6)));
-
-
-	for(int i=0;i<sumatera.size();++i)  
-		plotLine(frame, sumatera.at(i), color);
-	for(int i=0;i<jawa.size();++i)
-		plotLine(frame, jawa.at(i), color);
-	for(int i=0;i<kalimantan.size();++i)
-		plotLine(frame, kalimantan.at(i), color);
-	for(int i=0;i<sulawesi.size();++i)
-		plotLine(frame, sulawesi.at(i), color);
-	for(int i=0;i<papua.size();++i)
-		plotLine(frame, papua.at(i), color);
+/* VIEW CONTROLLER ------------------------------------------------- */
+void *threadFunc(void *arg)
+{
+	FILE *fmouse;
+    char b[3];
+	fmouse = fopen("/dev/input/mice","r");
+    while(1){
+                fread(b,sizeof(char),3,fmouse);
+                if ((b[0]&1)>0) { //leftbutton
+					windowSize += 20;
+				}
+				if ((b[0]&2)>0) { //rightbutton
+					if (windowSize>0) {
+						windowSize -= 20;
+					}
+				}
+				if ((b[0]&4)>0) { //mmb
+					xPlode = 1;
+				}
+				
+				windowLocation = coord(windowLocation.x+b[1],windowLocation.y-b[2]);
+        }
+        fclose(fmouse);
+	return NULL;
 }
+
 
 /* MAIN FUNCTION ------------------------------------------------------- */
 int main() {	
@@ -1026,51 +296,90 @@ int main() {
 	
 	//baling
 	int balingCounter=0;
-	int planeVelocity = 10;
+	int planeVelocity = 20;
 	int planeXPosition = canvasWidth;
-	int planeYPosition = 100;
-	int kapalXPosition = 225;
+	int planeYPosition = 270;
+	int kapalXPosition = 250;
 	int kapalVelocity = 15;
-	int kapalYPosition = 329;
+	int kapalYPosition = 250;
 
-	while (loop) {
+
+	vector<Line> mapLines;
+	vector<Line> heliLines;
+	vector<Line> kapalLines;
+	
+	vector<Line> allLines;
+	vector<Line> croppedLines;
 		
+	pthread_t pth;
+	pthread_create(&pth,NULL,threadFunc,NULL);
+	
+	//egg
+	int mul = 0;
+	
+	while (loop) {
 		// clean composition frame
 		flushFrame(&cFrame, rgb(33,33,33));
-		
-		std::vector<Line> test;
-		test.push_back(line(coord(10,10), coord(20,20)));
-		test.push_back(line(coord(20,20), coord(30,10)));
-		test.push_back(line(coord(30,10), coord(10,10)));
-		
-		window(&canvas, coord(200, 600), 100, test); 
-		
-		viewPort(&canvas, viewportOrigin, viewportSize, 100, test);
 				
 		showCanvas(&cFrame, &canvas, canvasWidth, canvasHeight, canvasPosition, rgb(99,99,99), 1);
 								
 		// clean canvas
 		flushFrame(&canvas, rgb(0,0,0));
+		
+		//clean vector
+		allLines.clear();
+		
+		//Nambahin Lines biar semua jadi 1
+		mapLines = drawPeta(&canvas, coord(0,0), rgb(50,150,0));
+		
+		heliLines=rotateBaling(&canvas,coord(planeXPosition -= planeVelocity,planeYPosition),rgb(255,255,255),balingCounter++);
+		
+		if(kapalXPosition>508 && kapalYPosition >50) {  //atas
+			kapalLines=drawKapalVertikal(&canvas,coord(kapalXPosition,kapalYPosition -= kapalVelocity),rgb(99,99,99));}
+			else if (kapalXPosition>120 && kapalYPosition >319) {  //kanan
+				kapalLines=drawKapal(&canvas,coord(kapalXPosition -= -kapalVelocity,kapalYPosition),rgb(99,99,99));}
+			else if (kapalXPosition >235 && kapalYPosition<51){ //kiri 
+				kapalLines=drawKapal(&canvas,coord(kapalXPosition -= kapalVelocity,kapalYPosition),rgb(99,99,99));}
+			else {kapalLines=drawKapalVertikal(&canvas,coord(kapalXPosition,kapalYPosition -= -kapalVelocity),rgb(99,99,99));} //bawah
+		allLines.insert(allLines.end(), kapalLines.begin(), kapalLines.end());
+		
+		allLines.insert(allLines.end(), mapLines.begin(), mapLines.end());
+		allLines.insert(allLines.end(), heliLines.begin(), heliLines.end());		
+		
+		//Draw window and get cropped lines								//100 = 1/2 size window
+		croppedLines = cohen_sutherland(&canvas, allLines, windowLocation, windowSize / 2);
+		
+													//200 = size window
+		viewPort(&canvas, viewportOrigin, viewportSize, windowSize, croppedLines);		
+		
+		if (planeXPosition <= -15) {
+			planeXPosition = canvasWidth+15;
+		}
+		
+		if (xPlode == 1) {
+			mul = 1;
+			xPlode = 0;
+			xPlodeLocation = windowLocation;
+		}
+		
+		animateExplosion(&canvas, mul, xPlodeLocation);
+		
+		if (mul == 21) {
+			mul = 0;
+			xPlode = 0;
+			xPlodeLocation = coord(0,0);
+		}
+		if (mul >= 1) {
+			mul++;
+		}
 
-		drawPeta(&canvas, coord(0,0), rgb(50,150,0));
-
-		if(kapalXPosition>509 && kapalYPosition >40) {  //atas
-			drawKapalVertikal(&canvas,coord(kapalXPosition,kapalYPosition -= kapalVelocity),rgb(99,99,99));}
-			else if (kapalXPosition>100 && kapalYPosition >320) {  //kanan
-				drawKapal(&canvas,coord(kapalXPosition -= -kapalVelocity,kapalYPosition),rgb(99,99,99));}
-			else if (kapalXPosition >225 && kapalYPosition<40){ //kiri 
-				drawKapal(&canvas,coord(kapalXPosition -= kapalVelocity,kapalYPosition),rgb(99,99,99));}
-			else {drawKapalVertikal(&canvas,coord(kapalXPosition,kapalYPosition -= -kapalVelocity),rgb(99,99,99));} //bawah
-		
-					
-		rotateBaling(&canvas,coord(planeXPosition -= planeVelocity,planeYPosition),rgb(255,255,255),balingCounter++);
-		
-		
 		//show frame
 		showFrame(&cFrame,&fb);	
 	}
 
 	/* Cleanup --------------------------------------------------------- */
+	int running= 0;
+	pthread_join(pth,NULL);
 	munmap(fb.ptr, sInfo.smem_len);
 	close(fbFile);
 	fclose(fmouse);
